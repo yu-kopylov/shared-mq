@@ -1,30 +1,29 @@
 package org.sharedmq;
 
-import org.mockito.Mock;
-import org.mockito.Mockito;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.sharedmq.internals.MappedQueueMessage;
 import org.sharedmq.internals.QueueServiceParametersValidator;
 import org.sharedmq.internals.QueueServiceParametersValidatorTest;
-import org.sharedmq.test.AdjustableMappedQueueService;
+import org.sharedmq.test.AdjustableMappedQueue;
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import java.io.File;
 import java.io.IOException;
 
-import static org.sharedmq.test.TestUtils.assertThrows;
 import static org.junit.Assert.*;
+import static org.sharedmq.test.TestUtils.assertThrows;
 
 @Category(CommonTests.class)
+//todo: rename test class (its not about service)
 public class MappedQueueServiceTest {
 
-    private static final int VisibilityTimeout = 30;
-    private static final int RetentionPeriod = 600;
+    private static final long VisibilityTimeout = 30 * 1000L;
+    private static final long RetentionPeriod = 600 * 1000L;
 
-    private static final int ShortPullTimeout = 0;
-    private static final int LongPullTimeout = 20;
+    private static final long ShortPullTimeout = 0;
+    private static final long LongPullTimeout = 20 * 1000L;
 
     /**
      * Tests basic queue service operations.
@@ -32,31 +31,29 @@ public class MappedQueueServiceTest {
     @Test
     public void testPushPullDelete() throws IOException, InterruptedException {
         try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testPushPullDelete")) {
-            try (AdjustableMappedQueueService service = new AdjustableMappedQueueService(testFolder.getRoot())) {
-
-                final String queueUrl = service.createQueue("testPushPullDelete", VisibilityTimeout, RetentionPeriod);
+            try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
-                assertNull(service.pull(queueUrl, ShortPullTimeout));
+                assertNull(queue.pull(ShortPullTimeout));
 
-                service.push(queueUrl, 0, "Test Message 1");
-                service.push(queueUrl, 0, "Test Message 2");
+                queue.push(0, "Test Message 1");
+                queue.push(0, "Test Message 2");
 
-                Message message1 = service.pull(queueUrl, LongPullTimeout);
-                Message message2 = service.pull(queueUrl, LongPullTimeout);
+                Message message1 = queue.pull(LongPullTimeout);
+                Message message2 = queue.pull(LongPullTimeout);
 
                 assertNotNull(message1);
                 assertNotNull(message2);
 
-                assertEquals(queueUrl, "Test Message 1", message1.asString());
-                assertEquals(queueUrl, "Test Message 2", message2.asString());
+                assertEquals("Test Message 1", message1.asString());
+                assertEquals("Test Message 2", message2.asString());
 
-                service.delete(queueUrl, message1);
-                service.delete(queueUrl, message2);
+                queue.delete(message1);
+                queue.delete(message2);
 
-                service.setTimeShift((VisibilityTimeout + 10) * 1000L);
+                queue.setTimeShift(VisibilityTimeout + 10);
 
-                assertNull(service.pull(queueUrl, ShortPullTimeout));
+                assertNull(queue.pull(ShortPullTimeout));
 
             } finally {
                 // A mapped byte buffer and the file mapping that it represents
@@ -72,32 +69,31 @@ public class MappedQueueServiceTest {
     @Test
     public void testDelay() throws InterruptedException, IOException {
         try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testDelay")) {
-            try (AdjustableMappedQueueService service = new AdjustableMappedQueueService(testFolder.getRoot())) {
-                final String queueUrl = service.createQueue("testDelay", VisibilityTimeout, RetentionPeriod);
+            try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
-                assertNull(service.pull(queueUrl, ShortPullTimeout));
+                assertNull(queue.pull(ShortPullTimeout));
 
                 // immediate delivery
-                service.push(queueUrl, 0, "Test Message 1");
+                queue.push(0, "Test Message 1");
                 // delivery after 10 seconds
-                service.push(queueUrl, 10, "Test Message 2");
+                queue.push(10 * 1000L, "Test Message 2");
 
-                Message message1 = service.pull(queueUrl, ShortPullTimeout);
-                Message message2 = service.pull(queueUrl, ShortPullTimeout);
+                Message message1 = queue.pull(ShortPullTimeout);
+                Message message2 = queue.pull(ShortPullTimeout);
 
                 assertNotNull(message1);
                 assertEquals("Test Message 1", message1.asString());
                 assertNull(message2);
 
-                service.setTimeShift(9000);
+                queue.setTimeShift(9000);
 
-                Message message3 = service.pull(queueUrl, ShortPullTimeout);
+                Message message3 = queue.pull(ShortPullTimeout);
                 assertNull(message3);
 
-                service.setTimeShift(11000);
+                queue.setTimeShift(11000);
 
-                Message message4 = service.pull(queueUrl, ShortPullTimeout);
+                Message message4 = queue.pull(ShortPullTimeout);
                 assertNotNull(message4);
                 assertEquals("Test Message 2", message4.asString());
             } finally {
@@ -116,44 +112,43 @@ public class MappedQueueServiceTest {
     public void testDeleteAfterVisibilityTimeout() throws InterruptedException, IOException {
         try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testDeleteAfterVisibilityTimeout")) {
             try (
-                    AdjustableMappedQueueService service1 = new AdjustableMappedQueueService(testFolder.getRoot());
-                    AdjustableMappedQueueService service2 = new AdjustableMappedQueueService(testFolder.getRoot())
+                    //todo: define constants
+                    AdjustableMappedQueue queue1 = new AdjustableMappedQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L);
+                    AdjustableMappedQueue queue2 = new AdjustableMappedQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L)
             ) {
-                final String queueUrl = service1.createQueue("testDeleteAfterVisibilityTimeout", 5, 60);
-
                 // check prerequisite
-                assertNull(service1.pull(queueUrl, ShortPullTimeout));
-                assertNull(service2.pull(queueUrl, ShortPullTimeout));
+                assertNull(queue1.pull(ShortPullTimeout));
+                assertNull(queue2.pull(ShortPullTimeout));
 
-                service1.push(queueUrl, 0, "Test Message 1");
-                Message message1 = service1.pull(queueUrl, ShortPullTimeout);
+                queue1.push(0, "Test Message 1");
+                Message message1 = queue1.pull(ShortPullTimeout);
 
-                service1.push(queueUrl, 0, "Test Message 2");
-                Message message2 = service1.pull(queueUrl, ShortPullTimeout);
+                queue1.push(0, "Test Message 2");
+                Message message2 = queue1.pull(ShortPullTimeout);
 
                 assertNotNull(message1);
                 assertNotNull(message2);
                 assertEquals("Test Message 1", message1.asString());
                 assertEquals("Test Message 2", message2.asString());
 
-                service1.setTimeShift(6000);
-                service2.setTimeShift(6000);
+                queue1.setTimeShift(6000);
+                queue2.setTimeShift(6000);
 
                 // deleting the message after its visibility timeout is expired
-                service1.delete(queueUrl, message1);
+                queue1.delete(message1);
 
-                Message message3 = service2.pull(queueUrl, ShortPullTimeout);
-                Message message4 = service2.pull(queueUrl, ShortPullTimeout);
+                Message message3 = queue2.pull(ShortPullTimeout);
+                Message message4 = queue2.pull(ShortPullTimeout);
                 assertNotNull(message3);
                 assertEquals("Test Message 2", message3.asString());
                 assertNull(message4);
 
-                service1.setTimeShift(12000);
-                service2.setTimeShift(12000);
+                queue1.setTimeShift(12000);
+                queue2.setTimeShift(12000);
 
                 // deleting the message after its visibility timeout expired and it was received by another consumer
-                service1.delete(queueUrl, message2);
-                Message message5 = service2.pull(queueUrl, ShortPullTimeout);
+                queue1.delete(message2);
+                Message message5 = queue2.pull(ShortPullTimeout);
                 assertNull(message5);
             } finally {
                 // A mapped byte buffer and the file mapping that it represents
@@ -169,14 +164,14 @@ public class MappedQueueServiceTest {
     @Test
     public void testDelayWithLongWait() throws InterruptedException, IOException {
         try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testDelayWithLongWait")) {
-            try (AdjustableMappedQueueService service = new AdjustableMappedQueueService(testFolder.getRoot())) {
-                String queueUrl = service.createQueue("TestQueue", VisibilityTimeout, RetentionPeriod);
-                // check prerequisite
-                assertNull(service.pull(queueUrl, ShortPullTimeout));
+            try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
-                service.push(queueUrl, 1, "Test Message");
+                // check prerequisite
+                assertNull(queue.pull(ShortPullTimeout));
+
+                queue.push(1000, "Test Message");
                 long startTime = System.currentTimeMillis();
-                Message message = service.pull(queueUrl, LongPullTimeout);
+                Message message = queue.pull(LongPullTimeout);
                 long pullTime = System.currentTimeMillis() - startTime;
                 assertNotNull(message);
                 assertEquals("Test Message", message.asString());
@@ -196,25 +191,25 @@ public class MappedQueueServiceTest {
     @Test
     public void testVisibilityTimeout() throws InterruptedException, IOException {
         try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testVisibilityTimeout")) {
-            try (AdjustableMappedQueueService service = new AdjustableMappedQueueService(testFolder.getRoot())) {
-                String queueUrl = service.createQueue("TestQueue", VisibilityTimeout, RetentionPeriod);
-                // check prerequisite
-                assertNull(service.pull(queueUrl, ShortPullTimeout));
+            try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
-                service.push(queueUrl, 0, "Test Message");
-                Message message1 = service.pull(queueUrl, ShortPullTimeout);
+                // check prerequisite
+                assertNull(queue.pull(ShortPullTimeout));
+
+                queue.push(0, "Test Message");
+                Message message1 = queue.pull(ShortPullTimeout);
                 assertNotNull(message1);
 
                 // receive message is invisible
-                assertNull(service.pull(queueUrl, ShortPullTimeout));
+                assertNull(queue.pull(ShortPullTimeout));
 
                 // receive message is invisible after some time
-                service.setTimeShift(VisibilityTimeout * 1000L - 500);
-                assertNull(service.pull(queueUrl, ShortPullTimeout));
+                queue.setTimeShift(VisibilityTimeout - 500);
+                assertNull(queue.pull(ShortPullTimeout));
 
                 // receive message becomes visible after VisibilityTimeout
-                service.setTimeShift(VisibilityTimeout * 1000L + 500);
-                Message message2 = service.pull(queueUrl, ShortPullTimeout);
+                queue.setTimeShift(VisibilityTimeout + 500);
+                Message message2 = queue.pull(ShortPullTimeout);
                 assertNotNull(message2);
                 assertEquals(message1.asString(), message2.asString());
             } finally {
@@ -231,52 +226,21 @@ public class MappedQueueServiceTest {
     @Test
     public void testRetentionPeriod() throws InterruptedException, IOException {
         try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testRetentionPeriod")) {
-            try (AdjustableMappedQueueService service = new AdjustableMappedQueueService(testFolder.getRoot())) {
-                String queueUrl = service.createQueue("TestQueue", VisibilityTimeout, RetentionPeriod);
-                // check prerequisite
-                assertNull(service.pull(queueUrl, ShortPullTimeout));
+            try (AdjustableMappedQueue service = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
-                service.push(queueUrl, 0, "Test Message 1");
-                service.push(queueUrl, 0, "Test Message 2");
+                // check prerequisite
+                assertNull(service.pull(ShortPullTimeout));
+
+                service.push(0, "Test Message 1");
+                service.push(0, "Test Message 2");
 
                 // after some time messages are still available
-                service.setTimeShift(RetentionPeriod * 1000L - 500);
-                assertNotNull(service.pull(queueUrl, ShortPullTimeout));
+                service.setTimeShift(RetentionPeriod - 500);
+                assertNotNull(service.pull(ShortPullTimeout));
 
                 // after RetentionPeriod messages are unavailable
-                service.setTimeShift(RetentionPeriod * 1000L + 500);
-                assertNull(service.pull(queueUrl, ShortPullTimeout));
-            } finally {
-                // A mapped byte buffer and the file mapping that it represents
-                // remain valid until the buffer itself is garbage-collected.
-                System.gc();
-            }
-        }
-    }
-
-    @Test
-    public void testQueueNameCase() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testQueueNameCase")) {
-            try (
-                    AdjustableMappedQueueService service1 = new AdjustableMappedQueueService(testFolder.getRoot());
-                    AdjustableMappedQueueService service2 = new AdjustableMappedQueueService(testFolder.getRoot())
-            ) {
-                String queueUrl1 = "QUEUE-NAME";
-                String queueUrl2 = "queue-name";
-
-                service1.createQueue(queueUrl1, 5, 60);
-
-                service1.push(queueUrl1, 0, "Queue Name Test Message 1");
-                service1.push(queueUrl2, 0, "Queue Name Test Message 2");
-
-                Message message1 = service2.pull(queueUrl1, 0);
-                Message message2 = service2.pull(queueUrl2, 0);
-
-                assertNotNull(message1);
-                assertNotNull(message2);
-
-                assertEquals(message1.asString(), "Queue Name Test Message 1");
-                assertEquals(message2.asString(), "Queue Name Test Message 2");
+                service.setTimeShift(RetentionPeriod + 500);
+                assertNull(service.pull(ShortPullTimeout));
             } finally {
                 // A mapped byte buffer and the file mapping that it represents
                 // remain valid until the buffer itself is garbage-collected.
@@ -347,7 +311,7 @@ public class MappedQueueServiceTest {
         }
 
         try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testQueueNameCase")) {
-            try (AdjustableMappedQueueService service = new AdjustableMappedQueueService(testFolder.getRoot())) {
+            try (MappedQueueService service = new MappedQueueService(testFolder.getRoot())) {
                 assertThrows(
                         IllegalArgumentException.class,
                         "queue name can contain only alphanumeric characters, hyphens and underscores",
@@ -372,25 +336,23 @@ public class MappedQueueServiceTest {
         }
     }
 
-
     @Test
     public void testMessageIdGeneration() throws InterruptedException, IOException {
         try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testMessageIdGeneration")) {
             try (
-                    AdjustableMappedQueueService service = new AdjustableMappedQueueService(testFolder.getRoot());
+                    MappedQueue queue = new MappedQueue(testFolder.getRoot(), 5000, 60 * 1000);
             ) {
-                String queueUrl = service.createQueue("test", 5, 60);
-
                 // we use some delay between messages to guarantee exact message order
-                service.push(queueUrl, 0, "Test Message 1");
+                queue.push(0, "Test Message 1");
                 Thread.sleep(2);
-                service.push(queueUrl, 0, "Test Message 2");
+                queue.push(0, "Test Message 2");
                 Thread.sleep(2);
-                service.push(queueUrl, 0, "Test Message 3");
+                queue.push(0, "Test Message 3");
 
-                MappedQueueMessage message1 = (MappedQueueMessage) service.pull(queueUrl, 5);
-                MappedQueueMessage message2 = (MappedQueueMessage) service.pull(queueUrl, 5);
-                MappedQueueMessage message3 = (MappedQueueMessage) service.pull(queueUrl, 5);
+                //todo: define constants
+                MappedQueueMessage message1 = (MappedQueueMessage) queue.pull(5000);
+                MappedQueueMessage message2 = (MappedQueueMessage) queue.pull(5000);
+                MappedQueueMessage message3 = (MappedQueueMessage) queue.pull(5000);
 
                 assertEquals("Test Message 1", message1.asString());
                 assertEquals("Test Message 2", message2.asString());
@@ -406,20 +368,20 @@ public class MappedQueueServiceTest {
 
                 // deleting all messages, and then replacing them
 
-                service.delete(queueUrl, message1);
-                service.delete(queueUrl, message2);
-                service.delete(queueUrl, message3);
+                queue.delete(message1);
+                queue.delete(message2);
+                queue.delete(message3);
 
                 // we use some delay between messages to guarantee exact message order
-                service.push(queueUrl, 0, "Test Message 4");
+                queue.push(0, "Test Message 4");
                 Thread.sleep(2);
-                service.push(queueUrl, 0, "Test Message 5");
+                queue.push(0, "Test Message 5");
                 Thread.sleep(2);
-                service.push(queueUrl, 0, "Test Message 6");
+                queue.push(0, "Test Message 6");
 
-                MappedQueueMessage message4 = (MappedQueueMessage) service.pull(queueUrl, 5);
-                MappedQueueMessage message5 = (MappedQueueMessage) service.pull(queueUrl, 5);
-                MappedQueueMessage message6 = (MappedQueueMessage) service.pull(queueUrl, 5);
+                MappedQueueMessage message4 = (MappedQueueMessage) queue.pull(5000);
+                MappedQueueMessage message5 = (MappedQueueMessage) queue.pull(5000);
+                MappedQueueMessage message6 = (MappedQueueMessage) queue.pull(5000);
 
                 assertEquals("Test Message 4", message4.asString());
                 assertEquals("Test Message 5", message5.asString());

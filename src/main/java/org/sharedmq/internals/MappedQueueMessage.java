@@ -1,12 +1,11 @@
 package org.sharedmq.internals;
 
 import org.sharedmq.Message;
-import org.sharedmq.MappedQueueService;
 
 import java.io.File;
 
 /**
- * A message returned by the {@link MappedQueueService}.
+ * A message returned by the {@link org.sharedmq.MappedQueue}.
  */
 public class MappedQueueMessage implements Message {
 
