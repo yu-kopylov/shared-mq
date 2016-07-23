@@ -1,0 +1,10 @@
+# Java Files
+*.java text eol=lf
+
+# XML-files
+*.xml text eol=lf
+*.xsd text eol=lf
+
+# Text files
+*.txt text eol=lf
+README text eol=lf
