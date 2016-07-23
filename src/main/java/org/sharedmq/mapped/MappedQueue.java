@@ -2,6 +2,7 @@ package org.sharedmq.mapped;
 
 import org.sharedmq.Message;
 import org.sharedmq.MappedQueueService;
+import org.sharedmq.primitives.*;
 import org.sharedmq.util.FileUtils;
 import org.sharedmq.util.Logger;
 

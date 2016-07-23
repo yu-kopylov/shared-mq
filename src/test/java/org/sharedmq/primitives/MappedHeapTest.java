@@ -1,11 +1,11 @@
-package org.sharedmq.mapped;
+package org.sharedmq.primitives;
 
+import org.sharedmq.primitives.MappedHeap;
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.sharedmq.mapped.LongStorageAdapter;
-import org.sharedmq.mapped.MappedHeap;
+import org.sharedmq.primitives.LongStorageAdapter;
 
 import java.io.IOException;
 import java.util.ArrayList;

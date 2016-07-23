@@ -1,4 +1,4 @@
-package org.sharedmq.mapped;
+package org.sharedmq.primitives;
 
 /**
  * A key that uniquely identifies a position of a byte array within the {@link MappedByteArrayStorage}.

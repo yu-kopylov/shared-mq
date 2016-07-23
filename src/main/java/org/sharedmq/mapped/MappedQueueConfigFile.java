@@ -1,5 +1,6 @@
 package org.sharedmq.mapped;
 
+import org.sharedmq.primitives.MappedByteBufferLock;
 import org.sharedmq.util.FileUtils;
 
 import java.io.*;

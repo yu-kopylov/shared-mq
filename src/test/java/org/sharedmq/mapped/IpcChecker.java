@@ -1,6 +1,6 @@
 package org.sharedmq.mapped;
 
-import org.sharedmq.mapped.MappedByteBufferLock;
+import org.sharedmq.primitives.MappedByteBufferLock;
 
 import java.io.File;
 import java.io.IOException;

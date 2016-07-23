@@ -1,4 +1,4 @@
-package org.sharedmq.mapped;
+package org.sharedmq.primitives;
 
 import java.io.Closeable;
 import java.io.File;

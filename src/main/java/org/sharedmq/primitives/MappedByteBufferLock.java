@@ -1,4 +1,4 @@
-package org.sharedmq.mapped;
+package org.sharedmq.primitives;
 
 import sun.misc.Unsafe;
 import sun.nio.ch.DirectBuffer;

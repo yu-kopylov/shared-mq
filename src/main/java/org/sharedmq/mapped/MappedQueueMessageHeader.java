@@ -1,5 +1,7 @@
 package org.sharedmq.mapped;
 
+import org.sharedmq.primitives.MappedByteArrayStorageKey;
+
 /**
  * This class contains message properties and references.
  */

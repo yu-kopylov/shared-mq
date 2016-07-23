@@ -1,12 +1,12 @@
-package org.sharedmq.mapped;
+package org.sharedmq.primitives;
 
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
 import org.sharedmq.test.TestUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.sharedmq.mapped.MappedByteArrayStorage;
-import org.sharedmq.mapped.MappedByteArrayStorageKey;
+import org.sharedmq.primitives.MappedByteArrayStorage;
+import org.sharedmq.primitives.MappedByteArrayStorageKey;
 
 import java.io.IOException;
 import java.util.Arrays;

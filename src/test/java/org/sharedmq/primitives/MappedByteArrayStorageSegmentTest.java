@@ -1,12 +1,12 @@
-package org.sharedmq.mapped;
+package org.sharedmq.primitives;
 
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
 import org.sharedmq.test.TestUtils;
-import org.sharedmq.mapped.MappedByteArrayStorageIndexRecord;
-import org.sharedmq.mapped.MappedByteArrayStorageKey;
-import org.sharedmq.mapped.MappedByteArrayStorageSegment;
-import org.sharedmq.mapped.MappedByteArrayStorageSegmentHeader;
+import org.sharedmq.primitives.MappedByteArrayStorageIndexRecord;
+import org.sharedmq.primitives.MappedByteArrayStorageKey;
+import org.sharedmq.primitives.MappedByteArrayStorageSegment;
+import org.sharedmq.primitives.MappedByteArrayStorageSegmentHeader;
 import org.sharedmq.util.FileUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

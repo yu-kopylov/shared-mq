@@ -1,5 +1,6 @@
-package org.sharedmq.mapped;
+package org.sharedmq.primitives;
 
+import org.sharedmq.primitives.StorageAdapter;
 import org.sharedmq.util.FileUtils;
 
 import java.io.Closeable;

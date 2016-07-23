@@ -1,5 +1,7 @@
-package org.sharedmq.mapped;
+package org.sharedmq.primitives;
 
+import org.sharedmq.mapped.IpcChecker;
+import org.sharedmq.primitives.MappedByteBufferLock;
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
 import org.sharedmq.util.FileUtils;

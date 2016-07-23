@@ -1,5 +1,7 @@
 package org.sharedmq.mapped;
 
+import org.sharedmq.primitives.StorageAdapter;
+
 import java.nio.ByteBuffer;
 
 /**

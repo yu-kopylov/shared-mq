@@ -1,4 +1,4 @@
-package org.sharedmq.mapped;
+package org.sharedmq.primitives;
 
 import org.sharedmq.util.Logger;
 import com.google.common.base.Stopwatch;
