@@ -3,23 +3,25 @@ package org.sharedmq.internals;
 import org.sharedmq.Message;
 import org.sharedmq.MappedQueueService;
 
+import java.io.File;
+
 /**
  * A message returned by the {@link MappedQueueService}.
  */
 public class MappedQueueMessage implements Message {
 
-    private final String queueUrl;
+    private final File queueFolder;
     private final MappedQueueMessageHeader header;
     private final String body;
 
-    public MappedQueueMessage(String queueUrl, MappedQueueMessageHeader header, String body) {
-        this.queueUrl = queueUrl;
+    public MappedQueueMessage(File queueFolder, MappedQueueMessageHeader header, String body) {
+        this.queueFolder = queueFolder;
         this.header = header;
         this.body = body;
     }
 
-    public String getQueueUrl() {
-        return queueUrl;
+    public File getQueueFolder() {
+        return queueFolder;
     }
 
     public MappedQueueMessageHeader getHeader() {

@@ -65,7 +65,7 @@ public class MappedQueueService implements Closeable {
                 throw new IOException("A queue with the name '" + queueName + "' already exists.");
             }
 
-            queue = createQueue(file, queueUrl, visibilityTimeout * 1000L, retentionPeriod * 1000L);
+            queue = createQueue(file, visibilityTimeout * 1000L, retentionPeriod * 1000L);
             queuesByUrl.put(queueUrl, queue);
         }
 
@@ -143,7 +143,7 @@ public class MappedQueueService implements Closeable {
             MappedQueue queue = queuesByUrl.get(queueUrl);
             if (queue == null) {
                 File file = new File(baseFolder, queueUrl);
-                queue = createQueue(file, queueUrl);
+                queue = createQueue(file);
                 queuesByUrl.put(queueUrl, queue);
             }
             return queue;
@@ -152,15 +152,14 @@ public class MappedQueueService implements Closeable {
 
     protected MappedQueue createQueue(
             File rootFolder,
-            String queueUrl,
             long visibilityTimeout,
             long retentionPeriod
     ) throws IOException, InterruptedException {
-        return new MappedQueue(rootFolder, queueUrl, visibilityTimeout, retentionPeriod);
+        return new MappedQueue(rootFolder, visibilityTimeout, retentionPeriod);
     }
 
-    protected MappedQueue createQueue(File rootFolder, String queueUrl) throws IOException, InterruptedException {
-        return new MappedQueue(rootFolder, queueUrl);
+    protected MappedQueue createQueue(File rootFolder) throws IOException, InterruptedException {
+        return new MappedQueue(rootFolder);
     }
 
     /**

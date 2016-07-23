@@ -27,7 +27,6 @@ public class MappedQueue implements Closeable {
     private static final String PriorityQueueFilename = "priority-queue.dat";
     private static final String MessageContentsFilename = "content.dat";
 
-    private final String queueUrl;
     private final File rootFolder;
 
     /**
@@ -63,7 +62,6 @@ public class MappedQueue implements Closeable {
      * including the root folder, if they do not exist.
      *
      * @param rootFolder        The root folder for the queue.
-     * @param queueUrl          The URL of the queue.
      * @param visibilityTimeout The amount of time (in milliseconds) that a message received from a queue
      *                          will be invisible to other receiving components.
      *                          Value must be between 0 seconds and 12 hours.
@@ -76,13 +74,11 @@ public class MappedQueue implements Closeable {
      */
     public MappedQueue(
             File rootFolder,
-            String queueUrl,
             long visibilityTimeout,
             long retentionPeriod
     ) throws IOException, InterruptedException {
 
-        this.rootFolder = rootFolder.getAbsoluteFile();
-        this.queueUrl = queueUrl;
+        this.rootFolder = rootFolder.getCanonicalFile();
 
         FileUtils.createFolder(rootFolder);
 
@@ -120,17 +116,12 @@ public class MappedQueue implements Closeable {
      * Reads the configuration from the existing queue.
      *
      * @param rootFolder The root folder for the queue.
-     * @param queueUrl   The URL of the queue.
      * @throws IOException          If the queue does not exist in the given folder.
      * @throws InterruptedException If the current operation was interrupted.
      */
-    public MappedQueue(
-            File rootFolder,
-            String queueUrl
-    ) throws IOException, InterruptedException {
+    public MappedQueue(File rootFolder) throws IOException, InterruptedException {
 
         this.rootFolder = rootFolder.getAbsoluteFile();
-        this.queueUrl = queueUrl;
 
         try {
             config = new MappedQueueConfigFile(new File(rootFolder, ConfigFilename));
@@ -318,7 +309,7 @@ public class MappedQueue implements Closeable {
             byte[] bodyBytes = messageContents.get(header.getBodyKey());
             String body = new String(bodyBytes, encoding);
 
-            return new MappedQueueMessage(queueUrl, header, body);
+            return new MappedQueueMessage(rootFolder, header, body);
         }
     }
 
@@ -334,11 +325,11 @@ public class MappedQueue implements Closeable {
 
         MappedQueueMessage queueMessage = (MappedQueueMessage) message;
 
-        if (!queueUrl.equals(queueMessage.getQueueUrl())) {
+        if (!rootFolder.equals(queueMessage.getQueueFolder())) {
             throw new IllegalArgumentException(
                     "This message was not received from this queue (" +
-                            "Queue URL: '" + queueUrl + "', " +
-                            "Message URL: '" + queueMessage.getQueueUrl() + "').");
+                            "Queue Folder: '" + rootFolder + "', " +
+                            "Message Folder: '" + queueMessage.getQueueFolder() + "').");
         }
 
         try (MappedByteBufferLock lock = config.acquireLock()) {

@@ -36,34 +36,29 @@ public class AdjustableMappedQueueService extends MappedQueueService {
     @Override
     protected MappedQueue createQueue(
             File rootFolder,
-            String queueUrl,
             long visibilityTimeout,
             long retentionPeriod
     ) throws IOException, InterruptedException {
-        return new AdjustableMappedQueue(rootFolder, queueUrl, visibilityTimeout, retentionPeriod);
+        return new AdjustableMappedQueue(rootFolder, visibilityTimeout, retentionPeriod);
     }
 
     @Override
-    protected MappedQueue createQueue(File rootFolder, String queueUrl) throws IOException, InterruptedException {
-        return new AdjustableMappedQueue(rootFolder, queueUrl);
+    protected MappedQueue createQueue(File rootFolder) throws IOException, InterruptedException {
+        return new AdjustableMappedQueue(rootFolder);
     }
 
     private class AdjustableMappedQueue extends MappedQueue {
 
         public AdjustableMappedQueue(
                 File rootFolder,
-                String queueUrl,
                 long visibilityTimeout,
                 long retentionPeriod
         ) throws IOException, InterruptedException {
-            super(rootFolder, queueUrl, visibilityTimeout, retentionPeriod);
+            super(rootFolder, visibilityTimeout, retentionPeriod);
         }
 
-        public AdjustableMappedQueue(
-                File rootFolder,
-                String queueUrl
-        ) throws IOException, InterruptedException {
-            super(rootFolder, queueUrl);
+        public AdjustableMappedQueue(File rootFolder) throws IOException, InterruptedException {
+            super(rootFolder);
         }
 
         @Override

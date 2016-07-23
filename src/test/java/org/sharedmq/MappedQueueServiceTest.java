@@ -1,5 +1,7 @@
 package org.sharedmq;
 
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.sharedmq.internals.MappedQueueMessage;
 import org.sharedmq.internals.QueueServiceParametersValidator;
 import org.sharedmq.internals.QueueServiceParametersValidatorTest;
@@ -9,6 +11,7 @@ import org.sharedmq.test.TestFolder;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import java.io.File;
 import java.io.IOException;
 
 import static org.sharedmq.test.TestUtils.assertThrows;
@@ -274,6 +277,52 @@ public class MappedQueueServiceTest {
 
                 assertEquals(message1.asString(), "Queue Name Test Message 1");
                 assertEquals(message2.asString(), "Queue Name Test Message 2");
+            } finally {
+                // A mapped byte buffer and the file mapping that it represents
+                // remain valid until the buffer itself is garbage-collected.
+                System.gc();
+            }
+        }
+    }
+
+    @Test
+    public void testRelativePaths() throws InterruptedException, IOException {
+        try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testRelativePaths")) {
+            File subFolder = testFolder.getFile("subfolder");
+            File alternateRootPath = new File(subFolder, "..");
+
+            try (
+                    MappedQueue queue1 = new MappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                    MappedQueue queue2 = new MappedQueue(alternateRootPath, VisibilityTimeout, RetentionPeriod);
+                    MappedQueue queue3 = new MappedQueue(subFolder, VisibilityTimeout, RetentionPeriod)
+            ) {
+
+                // push message to queue1, and receive it with queue2
+                queue1.push(0, "Test Message 1");
+                Message message1 = queue2.pull(ShortPullTimeout);
+                assertNotNull(message1);
+                assertEquals("Test Message 1", message1.asString());
+
+                // push message to queue1, and receive it with queue2
+                queue1.push(0, "Test Message 2");
+                Message message2 = queue2.pull(ShortPullTimeout);
+                assertNotNull(message2);
+                assertEquals("Test Message 2", message2.asString());
+
+                // queue3 points to another path and cannot delete messages received with queue2
+                assertThrows(
+                        IllegalArgumentException.class,
+                        "message was not received from this queue",
+                        () -> queue3.delete(message1));
+
+                assertThrows(
+                        IllegalArgumentException.class,
+                        "message was not received from this queue",
+                        () -> queue3.delete(message2));
+
+                // queue1 and queue2 point to the same path and can delete messages received with queue2
+                queue1.delete(message1);
+                queue2.delete(message2);
             } finally {
                 // A mapped byte buffer and the file mapping that it represents
                 // remain valid until the buffer itself is garbage-collected.
