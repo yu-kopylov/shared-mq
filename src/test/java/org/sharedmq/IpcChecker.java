@@ -1,4 +1,4 @@
-package org.sharedmq.mapped;
+package org.sharedmq;
 
 import org.sharedmq.primitives.MappedByteBufferLock;
 

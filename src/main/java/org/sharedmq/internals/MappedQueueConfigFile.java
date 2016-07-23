@@ -1,5 +1,6 @@
-package org.sharedmq.mapped;
+package org.sharedmq.internals;
 
+import org.sharedmq.MappedQueue;
 import org.sharedmq.primitives.MappedByteBufferLock;
 import org.sharedmq.util.FileUtils;
 

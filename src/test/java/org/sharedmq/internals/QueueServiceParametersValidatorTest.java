@@ -1,5 +1,7 @@
-package org.sharedmq;
+package org.sharedmq.internals;
 
+import org.sharedmq.Message;
+import org.sharedmq.internals.QueueServiceParametersValidator;
 import org.sharedmq.test.CommonTests;
 import com.google.common.base.Strings;
 import org.junit.Test;

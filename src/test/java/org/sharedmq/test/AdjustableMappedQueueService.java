@@ -1,7 +1,7 @@
 package org.sharedmq.test;
 
 import org.sharedmq.MappedQueueService;
-import org.sharedmq.mapped.MappedQueue;
+import org.sharedmq.MappedQueue;
 
 import java.io.File;
 import java.io.IOException;

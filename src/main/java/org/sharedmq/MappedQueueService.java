@@ -1,7 +1,7 @@
 package org.sharedmq;
 
-import org.sharedmq.mapped.MappedQueue;
-import org.sharedmq.mapped.MappedQueueMessage;
+import org.sharedmq.internals.MappedQueueMessage;
+import org.sharedmq.internals.QueueServiceParametersValidator;
 import org.sharedmq.util.FileUtils;
 
 import java.io.Closeable;

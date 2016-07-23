@@ -1,4 +1,4 @@
-package org.sharedmq.mapped;
+package org.sharedmq.internals;
 
 import org.sharedmq.primitives.StorageAdapter;
 

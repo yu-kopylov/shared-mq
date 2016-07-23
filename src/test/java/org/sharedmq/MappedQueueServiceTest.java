@@ -1,6 +1,8 @@
 package org.sharedmq;
 
-import org.sharedmq.mapped.MappedQueueMessage;
+import org.sharedmq.internals.MappedQueueMessage;
+import org.sharedmq.internals.QueueServiceParametersValidator;
+import org.sharedmq.internals.QueueServiceParametersValidatorTest;
 import org.sharedmq.test.AdjustableMappedQueueService;
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;

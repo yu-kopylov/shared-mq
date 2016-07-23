@@ -1,7 +1,6 @@
-package org.sharedmq.mapped;
+package org.sharedmq;
 
-import org.sharedmq.Message;
-import org.sharedmq.MappedQueueService;
+import org.sharedmq.internals.*;
 import org.sharedmq.primitives.*;
 import org.sharedmq.util.FileUtils;
 import org.slf4j.Logger;

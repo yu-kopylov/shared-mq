@@ -1,4 +1,7 @@
-package org.sharedmq;
+package org.sharedmq.internals;
+
+import org.sharedmq.MappedQueueService;
+import org.sharedmq.Message;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;

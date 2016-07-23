@@ -1,4 +1,6 @@
-package org.sharedmq.mapped;
+package org.sharedmq.internals;
+
+import org.sharedmq.MappedQueue;
 
 /**
  * A record within the heap used by {@link MappedQueue}.

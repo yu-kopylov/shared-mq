@@ -1,10 +1,10 @@
-package org.sharedmq.mapped;
+package org.sharedmq.internals;
 
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.sharedmq.mapped.MappedQueueConfigFile;
+import org.sharedmq.internals.MappedQueueConfigFile;
 
 import java.io.File;
 import java.io.IOException;

@@ -1,4 +1,4 @@
 /**
  * This package contains {@link org.sharedmq.MappedQueueService} internal classes.
  */
-package org.sharedmq.mapped;
+package org.sharedmq.internals;
