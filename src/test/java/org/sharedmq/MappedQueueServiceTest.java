@@ -288,6 +288,7 @@ public class MappedQueueServiceTest {
     @Test
     public void testRelativePaths() throws InterruptedException, IOException {
         try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testRelativePaths")) {
+
             File subFolder = testFolder.getFile("subfolder");
             File alternateRootPath = new File(subFolder, "..");
 
