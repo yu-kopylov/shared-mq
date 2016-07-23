@@ -4,7 +4,8 @@ import org.sharedmq.Message;
 import org.sharedmq.MappedQueueService;
 import org.sharedmq.primitives.*;
 import org.sharedmq.util.FileUtils;
-import org.sharedmq.util.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
@@ -17,7 +18,7 @@ import java.nio.charset.StandardCharsets;
  */
 public class MappedQueue implements Closeable {
 
-    private static final Logger logger = new Logger(MappedQueue.class);
+    private static final Logger logger = LoggerFactory.getLogger(MappedQueue.class);
 
     private static final Charset encoding = StandardCharsets.UTF_8;
 

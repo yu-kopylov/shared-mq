@@ -1,7 +1,8 @@
 package org.sharedmq.primitives;
 
-import org.sharedmq.util.Logger;
 import com.google.common.base.Stopwatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
@@ -55,7 +56,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class MappedByteArrayStorageSegment {
 
-    private static final Logger logger = new Logger(MappedByteArrayStorageSegment.class);
+    private static final Logger logger = LoggerFactory.getLogger(MappedByteArrayStorageSegment.class);
 
     /**
      * The size of one index record including its heap part.

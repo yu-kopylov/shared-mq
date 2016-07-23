@@ -1,5 +1,8 @@
 package org.sharedmq.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -13,7 +16,7 @@ import java.util.List;
 
 public class FileUtils {
 
-    private static final Logger logger = new Logger(FileUtils.class);
+    private static final Logger logger = LoggerFactory.getLogger(FileUtils.class);
 
     /**
      * Deletes the given file or directory.<br/>
@@ -68,7 +71,7 @@ public class FileUtils {
                 try {
                     delete(file.toFile());
                 } catch (InterruptedException e) {
-                    logger.error(e, "File tree deletion was interrupted.");
+                    logger.error("File tree deletion was interrupted.", e);
                     throw new IOException("File tree deletion was interrupted.", e);
                 }
                 return FileVisitResult.CONTINUE;
@@ -79,7 +82,7 @@ public class FileUtils {
                 try {
                     delete(dir.toFile());
                 } catch (InterruptedException e) {
-                    logger.error(e, "File tree deletion was interrupted.");
+                    logger.error("File tree deletion was interrupted.", e);
                     throw new IOException("File tree deletion was interrupted.", e);
                 }
                 return FileVisitResult.CONTINUE;
