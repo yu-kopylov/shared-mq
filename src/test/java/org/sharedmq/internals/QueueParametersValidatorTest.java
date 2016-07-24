@@ -111,7 +111,7 @@ public class QueueParametersValidatorTest {
     @Test
     public void testValidateDelete() {
 
-        QueueParametersValidator.validateDelete(Mockito.mock(MappedQueueMessage.class));
+        QueueParametersValidator.validateDelete(Mockito.mock(SharedQueueMessage.class));
 
         // message validation
         assertThrows(IllegalArgumentException.class,

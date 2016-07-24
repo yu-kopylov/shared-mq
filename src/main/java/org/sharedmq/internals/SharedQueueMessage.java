@@ -6,15 +6,15 @@ import org.sharedmq.SharedMessageQueue;
 import java.io.File;
 
 /**
- * A message returned by the {@link SharedMessageQueue}.
+ * An implementation of the {@link Message} returned by the {@link SharedMessageQueue}.
  */
-public class MappedQueueMessage implements Message {
+public class SharedQueueMessage implements Message {
 
     private final File queueFolder;
-    private final MappedQueueMessageHeader header;
+    private final MessageHeader header;
     private final String body;
 
-    public MappedQueueMessage(File queueFolder, MappedQueueMessageHeader header, String body) {
+    public SharedQueueMessage(File queueFolder, MessageHeader header, String body) {
         this.queueFolder = queueFolder;
         this.header = header;
         this.body = body;
@@ -24,7 +24,7 @@ public class MappedQueueMessage implements Message {
         return queueFolder;
     }
 
-    public MappedQueueMessageHeader getHeader() {
+    public MessageHeader getHeader() {
         return header;
     }
 

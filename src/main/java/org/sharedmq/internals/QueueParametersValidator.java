@@ -126,7 +126,7 @@ public class QueueParametersValidator {
         if (message == null) {
             throw new IllegalArgumentException("The message parameter cannot be null.");
         }
-        if (!(message instanceof MappedQueueMessage)) {
+        if (!(message instanceof SharedQueueMessage)) {
             throw new IllegalArgumentException("This message type does not belong to this message queue.");
         }
     }

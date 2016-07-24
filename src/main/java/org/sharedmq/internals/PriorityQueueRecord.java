@@ -5,11 +5,11 @@ import org.sharedmq.SharedMessageQueue;
 /**
  * A record within the heap used by {@link SharedMessageQueue}.
  */
-public class MappedQueueHeapRecord {
+public class PriorityQueueRecord {
     private int messageNumber;
     private long visibleSince;
 
-    public MappedQueueHeapRecord(int messageNumber, long visibleSince) {
+    public PriorityQueueRecord(int messageNumber, long visibleSince) {
         this.messageNumber = messageNumber;
         this.visibleSince = visibleSince;
     }
@@ -22,7 +22,7 @@ public class MappedQueueHeapRecord {
         return visibleSince;
     }
 
-    public static int compareVisibility(MappedQueueHeapRecord record1, MappedQueueHeapRecord record2) {
+    public static int compareVisibility(PriorityQueueRecord record1, PriorityQueueRecord record2) {
         return Long.compare(record1.getVisibleSince(), record2.getVisibleSince());
     }
 }

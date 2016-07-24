@@ -6,9 +6,9 @@ import org.sharedmq.primitives.StorageAdapter;
 import java.nio.ByteBuffer;
 
 /**
- * A storage adapter for the {@link MappedQueueMessageHeader}.
+ * A storage adapter for the {@link MessageHeader}.
  */
-public class MappedQueueMessageHeaderStorageAdapter implements StorageAdapter<MappedQueueMessageHeader> {
+public class MessageHeaderStorageAdapter implements StorageAdapter<MessageHeader> {
 
     // We assume that such timestamp can never occur (292269055 BC).
     private static final long TimestampNullValue = Long.MIN_VALUE;
@@ -16,12 +16,12 @@ public class MappedQueueMessageHeaderStorageAdapter implements StorageAdapter<Ma
     private static final byte NullMarker = 0;
     private static final byte NotNullMarker = 1;
 
-    private static final MappedQueueMessageHeaderStorageAdapter instance = new MappedQueueMessageHeaderStorageAdapter();
+    private static final MessageHeaderStorageAdapter instance = new MessageHeaderStorageAdapter();
 
     private MappedByteArrayStorageKeyStorageAdapter keyStorageAdapter
             = MappedByteArrayStorageKeyStorageAdapter.getInstance();
 
-    public static StorageAdapter<MappedQueueMessageHeader> getInstance() {
+    public static StorageAdapter<MessageHeader> getInstance() {
         return instance;
     }
 
@@ -31,7 +31,7 @@ public class MappedQueueMessageHeaderStorageAdapter implements StorageAdapter<Ma
     }
 
     @Override
-    public void store(ByteBuffer buffer, MappedQueueMessageHeader header) {
+    public void store(ByteBuffer buffer, MessageHeader header) {
 
         if (header == null) {
             buffer.put(NullMarker);
@@ -52,7 +52,7 @@ public class MappedQueueMessageHeaderStorageAdapter implements StorageAdapter<Ma
     }
 
     @Override
-    public MappedQueueMessageHeader load(ByteBuffer buffer) {
+    public MessageHeader load(ByteBuffer buffer) {
 
         byte hasValue = buffer.get();
         if (hasValue == NullMarker) {
@@ -62,7 +62,7 @@ public class MappedQueueMessageHeaderStorageAdapter implements StorageAdapter<Ma
         long messageId = buffer.getLong();
         int messageNumber = buffer.getInt();
 
-        MappedQueueMessageHeader header = new MappedQueueMessageHeader(messageId, messageNumber);
+        MessageHeader header = new MessageHeader(messageId, messageNumber);
 
         header.setSentTime(buffer.getLong());
         header.setDelay(buffer.getLong());

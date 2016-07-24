@@ -5,7 +5,7 @@ import org.sharedmq.primitives.MappedByteArrayStorageKey;
 /**
  * This class contains message properties and references.
  */
-public class MappedQueueMessageHeader {
+public class MessageHeader {
     private final long messageId;
     private final int messageNumber;
 
@@ -16,7 +16,7 @@ public class MappedQueueMessageHeader {
     private int heapIndex;
     private MappedByteArrayStorageKey bodyKey;
 
-    public MappedQueueMessageHeader(long messageId, int messageNumber) {
+    public MessageHeader(long messageId, int messageNumber) {
         this.messageId = messageId;
         this.messageNumber = messageNumber;
     }

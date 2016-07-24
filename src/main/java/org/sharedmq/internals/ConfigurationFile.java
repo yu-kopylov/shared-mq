@@ -16,7 +16,7 @@ import java.nio.channels.FileChannel;
  * The {@link #acquireLock()} method can be used to synchronize access
  * to memory mapped files between threads and processes.
  */
-public class MappedQueueConfigFile implements Closeable {
+public class ConfigurationFile implements Closeable {
 
     private static final int FileMarker = 0x4D514346;
     private static final int FileMarkerOffset = 0;
@@ -35,7 +35,7 @@ public class MappedQueueConfigFile implements Closeable {
     private final long visibilityTimeout;
     private final long retentionPeriod;
 
-    public MappedQueueConfigFile(File file) throws IOException, InterruptedException {
+    public ConfigurationFile(File file) throws IOException, InterruptedException {
 
         MappedByteBufferLock lock = null;
 
@@ -61,7 +61,7 @@ public class MappedQueueConfigFile implements Closeable {
         }
     }
 
-    public MappedQueueConfigFile(
+    public ConfigurationFile(
             File file,
             long visibilityTimeout,
             long retentionPeriod

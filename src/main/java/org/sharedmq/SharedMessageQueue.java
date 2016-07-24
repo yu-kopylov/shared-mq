@@ -31,14 +31,14 @@ public class SharedMessageQueue implements Closeable {
 
     /**
      * This is a configuration file.<br/>
-     * Is stores queue parameters, and is also used for locks.
+     * Is stores queue parameters, and also is used for locks.
      */
-    private MappedQueueConfigFile config;
+    private ConfigurationFile config;
 
     /**
      * This file contains message parameters and references to the priority queue and content storage.
      */
-    private MappedArrayList<MappedQueueMessageHeader> headers;
+    private MappedArrayList<MessageHeader> headers;
 
     /**
      * This file contains a list of free entries from the headers file.
@@ -49,7 +49,7 @@ public class SharedMessageQueue implements Closeable {
      * This is a priority queue.<br/>
      * For each message it stores a visibleSince value and a reference to the headers file.
      */
-    private MappedHeap<MappedQueueHeapRecord> priorityQueue;
+    private MappedHeap<PriorityQueueRecord> priorityQueue;
 
     /**
      * This file stores message bodies.
@@ -86,22 +86,22 @@ public class SharedMessageQueue implements Closeable {
         FileUtils.createFolder(rootFolder);
 
         try {
-            config = new MappedQueueConfigFile(new File(rootFolder, ConfigFilename), visibilityTimeout, retentionPeriod);
+            config = new ConfigurationFile(new File(rootFolder, ConfigFilename), visibilityTimeout, retentionPeriod);
 
             try (MappedByteBufferLock lock = config.acquireLock()) {
 
                 headers = new MappedArrayList<>(
                         new File(rootFolder, MessageHeadersFilename),
-                        MappedQueueMessageHeaderStorageAdapter.getInstance());
+                        MessageHeaderStorageAdapter.getInstance());
 
                 freeHeaders = new MappedArrayList<>(
                         new File(rootFolder, FreeHeadersFilename),
                         IntegerStorageAdapter.getInstance());
 
-                priorityQueue = new MappedHeap<MappedQueueHeapRecord>(
+                priorityQueue = new MappedHeap<PriorityQueueRecord>(
                         new File(rootFolder, PriorityQueueFilename),
-                        MappedQueueHeapRecordStorageAdapter.getInstance(),
-                        MappedQueueHeapRecord::compareVisibility);
+                        PriorityQueueRecordStorageAdapter.getInstance(),
+                        PriorityQueueRecord::compareVisibility);
 
                 messageContents = new MappedByteArrayStorage(new File(rootFolder, MessageContentsFilename));
             }
@@ -130,13 +130,13 @@ public class SharedMessageQueue implements Closeable {
         this.rootFolder = rootFolder.getAbsoluteFile();
 
         try {
-            config = new MappedQueueConfigFile(new File(rootFolder, ConfigFilename));
+            config = new ConfigurationFile(new File(rootFolder, ConfigFilename));
 
             try (MappedByteBufferLock lock = config.acquireLock()) {
 
                 headers = new MappedArrayList<>(
                         new File(rootFolder, MessageHeadersFilename),
-                        MappedQueueMessageHeaderStorageAdapter.getInstance());
+                        MessageHeaderStorageAdapter.getInstance());
 
                 freeHeaders = new MappedArrayList<>(
                         new File(rootFolder, FreeHeadersFilename),
@@ -144,8 +144,8 @@ public class SharedMessageQueue implements Closeable {
 
                 priorityQueue = new MappedHeap<>(
                         new File(rootFolder, PriorityQueueFilename),
-                        MappedQueueHeapRecordStorageAdapter.getInstance(),
-                        MappedQueueHeapRecord::compareVisibility);
+                        PriorityQueueRecordStorageAdapter.getInstance(),
+                        PriorityQueueRecord::compareVisibility);
 
                 messageContents = new MappedByteArrayStorage(new File(rootFolder, MessageContentsFilename));
             }
@@ -190,7 +190,7 @@ public class SharedMessageQueue implements Closeable {
                 messageNumber = headers.size();
             }
 
-            MappedQueueMessageHeader header = new MappedQueueMessageHeader(messageId, messageNumber);
+            MessageHeader header = new MessageHeader(messageId, messageNumber);
 
             header.setSentTime(now);
             header.setDelay(delay);
@@ -198,7 +198,7 @@ public class SharedMessageQueue implements Closeable {
 
             long visibleSince = getVisibleSince(header);
 
-            MappedQueueHeapRecord heapRecord = new MappedQueueHeapRecord(messageNumber, visibleSince);
+            PriorityQueueRecord heapRecord = new PriorityQueueRecord(messageNumber, visibleSince);
             header.setHeapIndex(priorityQueue.add(heapRecord));
 
             header.setBodyKey(messageContents.add(message.getBytes(encoding)));
@@ -227,7 +227,7 @@ public class SharedMessageQueue implements Closeable {
 
         long start = getTime();
 
-        MappedQueueMessage message = pollMessage();
+        SharedQueueMessage message = pollMessage();
 
         long remainingTimeout = getRemainingTimeout(start, timeout);
         while (message == null && remainingTimeout > 0) {
@@ -253,7 +253,7 @@ public class SharedMessageQueue implements Closeable {
 
         QueueParametersValidator.validateDelete(message);
 
-        MappedQueueMessage queueMessage = (MappedQueueMessage) message;
+        SharedQueueMessage queueMessage = (SharedQueueMessage) message;
 
         if (!rootFolder.equals(queueMessage.getQueueFolder())) {
             throw new IllegalArgumentException(
@@ -269,7 +269,7 @@ public class SharedMessageQueue implements Closeable {
                 // currently this should be impossible, because the headers list is never truncated
                 throw new IllegalStateException("Invalid message number (" + messageNumber + ").");
             }
-            MappedQueueMessageHeader currentHeader = headers.get(messageNumber);
+            MessageHeader currentHeader = headers.get(messageNumber);
             if (currentHeader == null || currentHeader.getMessageId() != queueMessage.getHeader().getMessageId()) {
                 // message was already deleted
                 return;
@@ -317,7 +317,7 @@ public class SharedMessageQueue implements Closeable {
         // We are checking, when the next message will become visible.
         // We do not want to miss that moment.
 
-        MappedQueueHeapRecord nextRecord;
+        PriorityQueueRecord nextRecord;
         try (MappedByteBufferLock lock = config.acquireLock()) {
             nextRecord = priorityQueue.peek();
         }
@@ -332,12 +332,12 @@ public class SharedMessageQueue implements Closeable {
         return nextRecord.getVisibleSince() - now + 1;
     }
 
-    private MappedQueueMessage pollMessage() throws IOException, InterruptedException {
+    private SharedQueueMessage pollMessage() throws IOException, InterruptedException {
         try (MappedByteBufferLock lock = config.acquireLock()) {
 
             long now = getTime();
 
-            MappedQueueMessageHeader header = peekNextMessageHeader();
+            MessageHeader header = peekNextMessageHeader();
 
             while (header != null && isExpired(header, now)) {
                 deleteMessage(header);
@@ -360,7 +360,7 @@ public class SharedMessageQueue implements Closeable {
             long visibleSince = getVisibleSince(header);
 
             priorityQueue.removeAt(header.getHeapIndex());
-            MappedQueueHeapRecord heapRecord = new MappedQueueHeapRecord(messageNumber, visibleSince);
+            PriorityQueueRecord heapRecord = new PriorityQueueRecord(messageNumber, visibleSince);
             header.setHeapIndex(priorityQueue.add(heapRecord));
 
             headers.set(messageNumber, header);
@@ -368,12 +368,12 @@ public class SharedMessageQueue implements Closeable {
             byte[] bodyBytes = messageContents.get(header.getBodyKey());
             String body = new String(bodyBytes, encoding);
 
-            return new MappedQueueMessage(rootFolder, header, body);
+            return new SharedQueueMessage(rootFolder, header, body);
         }
     }
 
-    private MappedQueueMessageHeader peekNextMessageHeader() throws IOException, InterruptedException {
-        MappedQueueHeapRecord firstHeapRecord = priorityQueue.peek();
+    private MessageHeader peekNextMessageHeader() throws IOException, InterruptedException {
+        PriorityQueueRecord firstHeapRecord = priorityQueue.peek();
         return firstHeapRecord == null ? null : headers.get(firstHeapRecord.getMessageNumber());
     }
 
@@ -384,14 +384,14 @@ public class SharedMessageQueue implements Closeable {
         return System.currentTimeMillis();
     }
 
-    private void updateHeapIndex(MappedQueueHeapRecord heapRecord, int index) throws IOException {
+    private void updateHeapIndex(PriorityQueueRecord heapRecord, int index) throws IOException {
         int messageNumber = heapRecord.getMessageNumber();
-        MappedQueueMessageHeader header = headers.get(messageNumber);
+        MessageHeader header = headers.get(messageNumber);
         header.setHeapIndex(index);
         headers.set(messageNumber, header);
     }
 
-    private void deleteMessage(MappedQueueMessageHeader header) throws IOException {
+    private void deleteMessage(MessageHeader header) throws IOException {
         int messageNumber = header.getMessageNumber();
         messageContents.delete(header.getBodyKey());
         priorityQueue.removeAt(header.getHeapIndex());
@@ -399,11 +399,11 @@ public class SharedMessageQueue implements Closeable {
         freeHeaders.add(messageNumber);
     }
 
-    private boolean isExpired(MappedQueueMessageHeader header, long now) {
+    private boolean isExpired(MessageHeader header, long now) {
         return now >= header.getSentTime() + config.getRetentionPeriod();
     }
 
-    private long getVisibleSince(MappedQueueMessageHeader header) {
+    private long getVisibleSince(MessageHeader header) {
         Long receivedTime = header.getReceivedTime();
         if (receivedTime != null) {
             // No overflow here, because visibilityTimeout is limited by 12 hours.

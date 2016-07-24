@@ -2,7 +2,7 @@ package org.sharedmq;
 
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.sharedmq.internals.MappedQueueMessage;
+import org.sharedmq.internals.SharedQueueMessage;
 import org.sharedmq.internals.QueueParametersValidator;
 import org.sharedmq.internals.QueueParametersValidatorTest;
 import org.sharedmq.test.AdjustableSharedMessageQueue;
@@ -352,9 +352,9 @@ public class SharedMessageQueueTest {
                 queue.push(0, "Test Message 3");
 
                 //todo: define constants
-                MappedQueueMessage message1 = (MappedQueueMessage) queue.pull(5000);
-                MappedQueueMessage message2 = (MappedQueueMessage) queue.pull(5000);
-                MappedQueueMessage message3 = (MappedQueueMessage) queue.pull(5000);
+                SharedQueueMessage message1 = (SharedQueueMessage) queue.pull(5000);
+                SharedQueueMessage message2 = (SharedQueueMessage) queue.pull(5000);
+                SharedQueueMessage message3 = (SharedQueueMessage) queue.pull(5000);
 
                 assertEquals("Test Message 1", message1.asString());
                 assertEquals("Test Message 2", message2.asString());
@@ -381,9 +381,9 @@ public class SharedMessageQueueTest {
                 Thread.sleep(2);
                 queue.push(0, "Test Message 6");
 
-                MappedQueueMessage message4 = (MappedQueueMessage) queue.pull(5000);
-                MappedQueueMessage message5 = (MappedQueueMessage) queue.pull(5000);
-                MappedQueueMessage message6 = (MappedQueueMessage) queue.pull(5000);
+                SharedQueueMessage message4 = (SharedQueueMessage) queue.pull(5000);
+                SharedQueueMessage message5 = (SharedQueueMessage) queue.pull(5000);
+                SharedQueueMessage message6 = (SharedQueueMessage) queue.pull(5000);
 
                 assertEquals("Test Message 4", message4.asString());
                 assertEquals("Test Message 5", message5.asString());
