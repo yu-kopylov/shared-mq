@@ -1,20 +1,20 @@
 package org.sharedmq.test;
 
-import org.sharedmq.MappedQueue;
+import org.sharedmq.SharedMessageQueue;
 
 import java.io.File;
 import java.io.IOException;
 
 /**
- * A wrapper around {@link MappedQueue} that allows to change queue time.
+ * A wrapper around {@link SharedMessageQueue} that allows to change queue time.
  */
-public class AdjustableMappedQueue extends MappedQueue {
+public class AdjustableSharedMessageQueue extends SharedMessageQueue {
 
     private final Object timeShiftMonitor = new Object();
 
     private long timeShift;
 
-    public AdjustableMappedQueue(
+    public AdjustableSharedMessageQueue(
             File rootFolder,
             long visibilityTimeout,
             long retentionPeriod
@@ -22,7 +22,7 @@ public class AdjustableMappedQueue extends MappedQueue {
         super(rootFolder, visibilityTimeout, retentionPeriod);
     }
 
-    public AdjustableMappedQueue(File rootFolder) throws IOException, InterruptedException {
+    public AdjustableSharedMessageQueue(File rootFolder) throws IOException, InterruptedException {
         super(rootFolder);
     }
 

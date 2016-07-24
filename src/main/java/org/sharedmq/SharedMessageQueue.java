@@ -15,9 +15,9 @@ import java.nio.charset.StandardCharsets;
 /**
  * A message queue based on memory-mapped files.
  */
-public class MappedQueue implements Closeable {
+public class SharedMessageQueue implements Closeable {
 
-    private static final Logger logger = LoggerFactory.getLogger(MappedQueue.class);
+    private static final Logger logger = LoggerFactory.getLogger(SharedMessageQueue.class);
 
     private static final Charset encoding = StandardCharsets.UTF_8;
 
@@ -57,7 +57,7 @@ public class MappedQueue implements Closeable {
     private MappedByteArrayStorage messageContents;
 
     /**
-     * Creates an instance of a {@link MappedQueue}.<br/>
+     * Creates an instance of a {@link SharedMessageQueue}.<br/>
      * Creates all necessary files and folders for a queue in the given folder,
      * including the root folder, if they do not exist.
      *
@@ -73,7 +73,7 @@ public class MappedQueue implements Closeable {
      *                                  or if folder already has a queue with different parameters.
      * @throws InterruptedException     If the current operation was interrupted.
      */
-    public MappedQueue(
+    public SharedMessageQueue(
             File rootFolder,
             long visibilityTimeout,
             long retentionPeriod
@@ -114,7 +114,7 @@ public class MappedQueue implements Closeable {
     }
 
     /**
-     * Creates an instance of a {@link MappedQueue}.<be/>
+     * Creates an instance of a {@link SharedMessageQueue}.<be/>
      * Expects that a queue already exist in that folder.<br/>
      * Reads the configuration from the existing queue.
      *
@@ -123,7 +123,7 @@ public class MappedQueue implements Closeable {
      * @throws IOException              If the queue does not exist in the given folder.
      * @throws InterruptedException     If the current operation was interrupted.
      */
-    public MappedQueue(File rootFolder) throws IOException, InterruptedException {
+    public SharedMessageQueue(File rootFolder) throws IOException, InterruptedException {
 
         QueueParametersValidator.validateOpenQueue(rootFolder);
 

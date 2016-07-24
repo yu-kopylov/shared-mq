@@ -1,6 +1,6 @@
 package org.sharedmq.internals;
 
-import org.sharedmq.MappedQueue;
+import org.sharedmq.SharedMessageQueue;
 import org.sharedmq.primitives.MappedByteBufferLock;
 import org.sharedmq.util.FileUtils;
 
@@ -9,7 +9,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
 /**
- * Represents a configuration file for the {@link MappedQueue}.<br/>
+ * Represents a configuration file for the {@link SharedMessageQueue}.<br/>
  * It also serves as a lock container.<br/>
  * <br/>
  * This class is not thread-safe, except for the constructors.<br/>
@@ -47,7 +47,7 @@ public class MappedQueueConfigFile implements Closeable {
             lock = acquireLock();
             int fileMarker = buffer.getInt(FileMarkerOffset);
             if (fileMarker != FileMarker) {
-                throw new IOException("The file '" + file.getAbsolutePath() + "' is not a MappedQueue configuration file.");
+                throw new IOException("The file '" + file.getAbsolutePath() + "' is not a SharedMessageQueue configuration file.");
             }
             this.visibilityTimeout = buffer.getLong(VisibilityTimeoutOffset);
             this.retentionPeriod = buffer.getLong(RetentionPeriodOffset);

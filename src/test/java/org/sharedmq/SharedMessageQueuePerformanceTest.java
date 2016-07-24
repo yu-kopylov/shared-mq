@@ -19,7 +19,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 @Category(PerformanceTests.class)
-public class MappedQueuePerformanceTest {
+public class SharedMessageQueuePerformanceTest {
 
     private static final long PullTimeout = 5000;
     private static final long Hours12 = 12 * 60 * 60 * 1000L;
@@ -27,7 +27,7 @@ public class MappedQueuePerformanceTest {
     @Test
     public void testPushPullDelete() throws IOException, InterruptedException {
         //todo: shorten folder name
-        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushPullDelete")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushPullDelete")) {
             try {
                 testPushPullDelete(testFolder.getRoot(), 1, 500000, 32);
             } finally {
@@ -41,7 +41,7 @@ public class MappedQueuePerformanceTest {
 
     @Test
     public void testPushPullDeleteWith2Threads() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushPullDeleteWith2Threads")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushPullDeleteWith2Threads")) {
             try {
                 testPushPullDelete(testFolder.getRoot(), 2, 250000, 32);
             } finally {
@@ -54,7 +54,7 @@ public class MappedQueuePerformanceTest {
 
     @Test
     public void testPushPullDeleteWith10Threads() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushPullDeleteWith10Threads")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushPullDeleteWith10Threads")) {
             try {
                 testPushPullDelete(testFolder.getRoot(), 10, 50000, 32);
             } finally {
@@ -67,7 +67,7 @@ public class MappedQueuePerformanceTest {
 
     @Test
     public void testPushAllPullAllDeleteAll() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushAllPullAllDeleteAll")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushAllPullAllDeleteAll")) {
             try {
                 testPushAllPullAllDeleteAll(testFolder.getRoot(), 1, 500000, 32);
             } finally {
@@ -80,7 +80,7 @@ public class MappedQueuePerformanceTest {
 
     @Test
     public void testPushAllPullAllDeleteWith2Threads() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushAllPullAllDeleteWith2Threads")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushAllPullAllDeleteWith2Threads")) {
             try {
                 testPushAllPullAllDeleteAll(testFolder.getRoot(), 2, 250000, 32);
             } finally {
@@ -93,7 +93,7 @@ public class MappedQueuePerformanceTest {
 
     @Test
     public void testPushAllPullAllDeleteWith10Threads() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushAllPullAllDeleteWith10Threads")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushAllPullAllDeleteWith10Threads")) {
             try {
                 testPushAllPullAllDeleteAll(testFolder.getRoot(), 10, 50000, 32);
             } finally {
@@ -107,7 +107,7 @@ public class MappedQueuePerformanceTest {
     @Test
     public void testPushAllPullAllDeleteAllWithBigMessages() throws IOException, InterruptedException {
         // Note: this test requires around 640Mb on the disc.
-        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushAllPullAllDeleteAllWithBigMessages")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushAllPullAllDeleteAllWithBigMessages")) {
             try {
                 testPushAllPullAllDeleteAll(testFolder.getRoot(), 2, 5000, 64 * 1024);
             } finally {
@@ -139,7 +139,7 @@ public class MappedQueuePerformanceTest {
         final CountDownLatch startLatch = new CountDownLatch(threadCount);
 
         //todo: check size of Hours12 (sec vs ms)
-        try (MappedQueue queue = new MappedQueue(queueFolder, Hours12, Hours12)) {
+        try (SharedMessageQueue queue = new SharedMessageQueue(queueFolder, Hours12, Hours12)) {
             for (int threadNum = 0; threadNum < threadCount; threadNum++) {
                 threads.add(new Thread(() -> {
                     try {
@@ -196,7 +196,7 @@ public class MappedQueuePerformanceTest {
         final List<Thread> pushThreads = new ArrayList<>();
         final CountDownLatch pushStartLatch = new CountDownLatch(threadCount);
 
-        try (MappedQueue queue = new MappedQueue(queueFolder, Hours12, Hours12)) {
+        try (SharedMessageQueue queue = new SharedMessageQueue(queueFolder, Hours12, Hours12)) {
             for (int threadNum = 0; threadNum < threadCount; threadNum++) {
                 pushThreads.add(new Thread(() -> {
                     try {

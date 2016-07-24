@@ -5,7 +5,7 @@ import org.junit.experimental.categories.Category;
 import org.sharedmq.internals.MappedQueueMessage;
 import org.sharedmq.internals.QueueParametersValidator;
 import org.sharedmq.internals.QueueParametersValidatorTest;
-import org.sharedmq.test.AdjustableMappedQueue;
+import org.sharedmq.test.AdjustableSharedMessageQueue;
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
 
@@ -16,7 +16,7 @@ import static org.junit.Assert.*;
 import static org.sharedmq.test.TestUtils.assertThrows;
 
 @Category(CommonTests.class)
-public class MappedQueueTest {
+public class SharedMessageQueueTest {
 
     private static final long VisibilityTimeout = 30 * 1000L;
     private static final long RetentionPeriod = 600 * 1000L;
@@ -29,8 +29,8 @@ public class MappedQueueTest {
      */
     @Test
     public void testPushPullDelete() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testPushPullDelete")) {
-            try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testPushPullDelete")) {
+            try (AdjustableSharedMessageQueue queue = new AdjustableSharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
                 assertNull(queue.pull(ShortPullTimeout));
@@ -67,8 +67,8 @@ public class MappedQueueTest {
      */
     @Test
     public void testDelay() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testDelay")) {
-            try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testDelay")) {
+            try (AdjustableSharedMessageQueue queue = new AdjustableSharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
                 assertNull(queue.pull(ShortPullTimeout));
@@ -109,11 +109,11 @@ public class MappedQueueTest {
      */
     @Test
     public void testDeleteAfterVisibilityTimeout() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testDeleteAfterVisibilityTimeout")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testDeleteAfterVisibilityTimeout")) {
             try (
                     //todo: define constants
-                    AdjustableMappedQueue queue1 = new AdjustableMappedQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L);
-                    AdjustableMappedQueue queue2 = new AdjustableMappedQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L)
+                    AdjustableSharedMessageQueue queue1 = new AdjustableSharedMessageQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L);
+                    AdjustableSharedMessageQueue queue2 = new AdjustableSharedMessageQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L)
             ) {
                 // check prerequisite
                 assertNull(queue1.pull(ShortPullTimeout));
@@ -162,8 +162,8 @@ public class MappedQueueTest {
      */
     @Test
     public void testDelayWithLongWait() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testDelayWithLongWait")) {
-            try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testDelayWithLongWait")) {
+            try (AdjustableSharedMessageQueue queue = new AdjustableSharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
                 assertNull(queue.pull(ShortPullTimeout));
@@ -189,8 +189,8 @@ public class MappedQueueTest {
      */
     @Test
     public void testVisibilityTimeout() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testVisibilityTimeout")) {
-            try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testVisibilityTimeout")) {
+            try (AdjustableSharedMessageQueue queue = new AdjustableSharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
                 assertNull(queue.pull(ShortPullTimeout));
@@ -224,8 +224,8 @@ public class MappedQueueTest {
      */
     @Test
     public void testRetentionPeriod() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testRetentionPeriod")) {
-            try (AdjustableMappedQueue service = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testRetentionPeriod")) {
+            try (AdjustableSharedMessageQueue service = new AdjustableSharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
                 assertNull(service.pull(ShortPullTimeout));
@@ -250,15 +250,15 @@ public class MappedQueueTest {
 
     @Test
     public void testRelativePaths() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testRelativePaths")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testRelativePaths")) {
 
             File subFolder = testFolder.getFile("subfolder");
             File alternateRootPath = new File(subFolder, "..");
 
             try (
-                    MappedQueue queue1 = new MappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
-                    MappedQueue queue2 = new MappedQueue(alternateRootPath, VisibilityTimeout, RetentionPeriod);
-                    MappedQueue queue3 = new MappedQueue(subFolder, VisibilityTimeout, RetentionPeriod)
+                    SharedMessageQueue queue1 = new SharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                    SharedMessageQueue queue2 = new SharedMessageQueue(alternateRootPath, VisibilityTimeout, RetentionPeriod);
+                    SharedMessageQueue queue3 = new SharedMessageQueue(subFolder, VisibilityTimeout, RetentionPeriod)
             ) {
 
                 // push message to queue1, and receive it with queue2
@@ -296,7 +296,7 @@ public class MappedQueueTest {
     }
 
     /**
-     * This test only checks that public methods of the {@link MappedQueue}
+     * This test only checks that public methods of the {@link SharedMessageQueue}
      * call {@link QueueParametersValidator}.<br/>
      * More rigorous parameter testing is implemented in {@link QueueParametersValidatorTest}.
      */
@@ -310,14 +310,14 @@ public class MappedQueueTest {
             }
         }
 
-        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testQueueNameCase")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testQueueNameCase")) {
 
             assertThrows(
                     IllegalArgumentException.class,
                     "rootFolder parameter cannot be null",
-                    () -> new MappedQueue(null, 0, 120));
+                    () -> new SharedMessageQueue(null, 0, 120));
 
-            try (MappedQueue service = new MappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
+            try (SharedMessageQueue service = new SharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
                 assertThrows(
                         IllegalArgumentException.class,
                         "delay in milliseconds must be between 0 and 900000",
@@ -340,9 +340,9 @@ public class MappedQueueTest {
 
     @Test
     public void testMessageIdGeneration() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testMessageIdGeneration")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testMessageIdGeneration")) {
             try (
-                    MappedQueue queue = new MappedQueue(testFolder.getRoot(), 5000, 60 * 1000);
+                    SharedMessageQueue queue = new SharedMessageQueue(testFolder.getRoot(), 5000, 60 * 1000);
             ) {
                 // we use some delay between messages to guarantee exact message order
                 queue.push(0, "Test Message 1");

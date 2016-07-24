@@ -13,16 +13,16 @@ import static org.sharedmq.test.TestUtils.assertThrows;
 import static org.junit.Assert.assertEquals;
 
 @Category(CommonTests.class)
-public class MappedQueueConfigFileTest {
+public class SharedMessageQueueConfigFileTest {
     @Test
     public void testSmoke() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueConfigFileTest", "testSmoke")) {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueConfigFileTest", "testSmoke")) {
             try {
                 File file = testFolder.getFile("config.dat");
 
                 assertThrows(
                         IOException.class,
-                        "is not a MappedQueue configuration file",
+                        "is not a SharedMessageQueue configuration file",
                         () -> new MappedQueueConfigFile(file));
 
                 try (MappedQueueConfigFile config = new MappedQueueConfigFile(file, 123, 456)) {

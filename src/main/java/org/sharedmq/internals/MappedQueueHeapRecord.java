@@ -1,9 +1,9 @@
 package org.sharedmq.internals;
 
-import org.sharedmq.MappedQueue;
+import org.sharedmq.SharedMessageQueue;
 
 /**
- * A record within the heap used by {@link MappedQueue}.
+ * A record within the heap used by {@link SharedMessageQueue}.
  */
 public class MappedQueueHeapRecord {
     private int messageNumber;

@@ -1,6 +1,6 @@
 package org.sharedmq.internals;
 
-import org.sharedmq.MappedQueue;
+import org.sharedmq.SharedMessageQueue;
 import org.sharedmq.Message;
 
 import java.io.File;
@@ -8,7 +8,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /**
- * This class contains restrictions for parameters of {@link MappedQueue} methods.
+ * This class contains restrictions for parameters of {@link SharedMessageQueue} methods.
  */
 public class QueueParametersValidator {
 
@@ -28,7 +28,7 @@ public class QueueParametersValidator {
     private static final long MaxPullTimeout = 20 * 1000L;
 
     /**
-     * Validates the parameters of the {@link MappedQueue#MappedQueue(File, long, long)} method.
+     * Validates the parameters of the {@link SharedMessageQueue#SharedMessageQueue(File, long, long)} method.
      *
      * @param rootFolder        The folder where queue should be created.
      * @param visibilityTimeout The amount of time in milliseconds that a message received from a queue
@@ -63,7 +63,7 @@ public class QueueParametersValidator {
     }
 
     /**
-     * Validates the parameters of the {@link MappedQueue#MappedQueue(File)} method.
+     * Validates the parameters of the {@link SharedMessageQueue#SharedMessageQueue(File)} method.
      *
      * @param rootFolder The folder where queue is located.
      * @throws IllegalArgumentException If parameters are invalid.
@@ -76,7 +76,7 @@ public class QueueParametersValidator {
     }
 
     /**
-     * Validates the parameters of the {@link MappedQueue#push(long, String)} method.
+     * Validates the parameters of the {@link SharedMessageQueue#push(long, String)} method.
      *
      * @param delay   The amount of time in milliseconds to delay the first delivery of this message.
      *                Value must be between 0 seconds and 15 minutes.
@@ -99,7 +99,7 @@ public class QueueParametersValidator {
     }
 
     /**
-     * Validates the parameters of the {@link MappedQueue#pull(long)} method.
+     * Validates the parameters of the {@link SharedMessageQueue#pull(long)} method.
      *
      * @param timeout Timeout for this operation in milliseconds.
      *                Value must be between 0 and 20 seconds.
@@ -117,7 +117,7 @@ public class QueueParametersValidator {
     }
 
     /**
-     * Validates the parameters of the {@link MappedQueue#delete(Message)} method.
+     * Validates the parameters of the {@link SharedMessageQueue#delete(Message)} method.
      *
      * @param message The message to delete.
      * @throws IllegalArgumentException If parameters are invalid.
