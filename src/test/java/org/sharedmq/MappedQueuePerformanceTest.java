@@ -19,7 +19,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 @Category(PerformanceTests.class)
-public class MappedQueueServicePerformanceTest {
+public class MappedQueuePerformanceTest {
 
     private static final long PullTimeout = 5000;
     private static final long Hours12 = 12 * 60 * 60 * 1000L;
@@ -27,7 +27,7 @@ public class MappedQueueServicePerformanceTest {
     @Test
     public void testPushPullDelete() throws IOException, InterruptedException {
         //todo: shorten folder name
-        try (TestFolder testFolder = new TestFolder("MappedQueueServicePerformanceTest", "testPushPullDelete")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushPullDelete")) {
             try {
                 testPushPullDelete(testFolder.getRoot(), 1, 500000, 32);
             } finally {
@@ -41,7 +41,7 @@ public class MappedQueueServicePerformanceTest {
 
     @Test
     public void testPushPullDeleteWith2Threads() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServicePerformanceTest", "testPushPullDeleteWith2Threads")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushPullDeleteWith2Threads")) {
             try {
                 testPushPullDelete(testFolder.getRoot(), 2, 250000, 32);
             } finally {
@@ -54,7 +54,7 @@ public class MappedQueueServicePerformanceTest {
 
     @Test
     public void testPushPullDeleteWith10Threads() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServicePerformanceTest", "testPushPullDeleteWith10Threads")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushPullDeleteWith10Threads")) {
             try {
                 testPushPullDelete(testFolder.getRoot(), 10, 50000, 32);
             } finally {
@@ -67,7 +67,7 @@ public class MappedQueueServicePerformanceTest {
 
     @Test
     public void testPushAllPullAllDeleteAll() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServicePerformanceTest", "testPushAllPullAllDeleteAll")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushAllPullAllDeleteAll")) {
             try {
                 testPushAllPullAllDeleteAll(testFolder.getRoot(), 1, 500000, 32);
             } finally {
@@ -80,7 +80,7 @@ public class MappedQueueServicePerformanceTest {
 
     @Test
     public void testPushAllPullAllDeleteWith2Threads() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServicePerformanceTest", "testPushAllPullAllDeleteWith2Threads")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushAllPullAllDeleteWith2Threads")) {
             try {
                 testPushAllPullAllDeleteAll(testFolder.getRoot(), 2, 250000, 32);
             } finally {
@@ -93,7 +93,7 @@ public class MappedQueueServicePerformanceTest {
 
     @Test
     public void testPushAllPullAllDeleteWith10Threads() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServicePerformanceTest", "testPushAllPullAllDeleteWith10Threads")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushAllPullAllDeleteWith10Threads")) {
             try {
                 testPushAllPullAllDeleteAll(testFolder.getRoot(), 10, 50000, 32);
             } finally {
@@ -107,7 +107,7 @@ public class MappedQueueServicePerformanceTest {
     @Test
     public void testPushAllPullAllDeleteAllWithBigMessages() throws IOException, InterruptedException {
         // Note: this test requires around 640Mb on the disc.
-        try (TestFolder testFolder = new TestFolder("MappedQueueServicePerformanceTest", "testPushAllPullAllDeleteAllWithBigMessages")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueuePerformanceTest", "testPushAllPullAllDeleteAllWithBigMessages")) {
             try {
                 testPushAllPullAllDeleteAll(testFolder.getRoot(), 2, 5000, 64 * 1024);
             } finally {

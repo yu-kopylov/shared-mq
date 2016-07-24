@@ -16,8 +16,7 @@ import static org.junit.Assert.*;
 import static org.sharedmq.test.TestUtils.assertThrows;
 
 @Category(CommonTests.class)
-//todo: rename test class (its not about service)
-public class MappedQueueServiceTest {
+public class MappedQueueTest {
 
     private static final long VisibilityTimeout = 30 * 1000L;
     private static final long RetentionPeriod = 600 * 1000L;
@@ -30,7 +29,7 @@ public class MappedQueueServiceTest {
      */
     @Test
     public void testPushPullDelete() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testPushPullDelete")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testPushPullDelete")) {
             try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
@@ -68,7 +67,7 @@ public class MappedQueueServiceTest {
      */
     @Test
     public void testDelay() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testDelay")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testDelay")) {
             try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
@@ -110,7 +109,7 @@ public class MappedQueueServiceTest {
      */
     @Test
     public void testDeleteAfterVisibilityTimeout() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testDeleteAfterVisibilityTimeout")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testDeleteAfterVisibilityTimeout")) {
             try (
                     //todo: define constants
                     AdjustableMappedQueue queue1 = new AdjustableMappedQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L);
@@ -163,7 +162,7 @@ public class MappedQueueServiceTest {
      */
     @Test
     public void testDelayWithLongWait() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testDelayWithLongWait")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testDelayWithLongWait")) {
             try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
@@ -190,7 +189,7 @@ public class MappedQueueServiceTest {
      */
     @Test
     public void testVisibilityTimeout() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testVisibilityTimeout")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testVisibilityTimeout")) {
             try (AdjustableMappedQueue queue = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
@@ -225,7 +224,7 @@ public class MappedQueueServiceTest {
      */
     @Test
     public void testRetentionPeriod() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testRetentionPeriod")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testRetentionPeriod")) {
             try (AdjustableMappedQueue service = new AdjustableMappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
 
                 // check prerequisite
@@ -251,7 +250,7 @@ public class MappedQueueServiceTest {
 
     @Test
     public void testRelativePaths() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testRelativePaths")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testRelativePaths")) {
 
             File subFolder = testFolder.getFile("subfolder");
             File alternateRootPath = new File(subFolder, "..");
@@ -311,7 +310,7 @@ public class MappedQueueServiceTest {
             }
         }
 
-        try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testQueueNameCase")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testQueueNameCase")) {
 
             assertThrows(
                     IllegalArgumentException.class,
@@ -341,7 +340,7 @@ public class MappedQueueServiceTest {
 
     @Test
     public void testMessageIdGeneration() throws InterruptedException, IOException {
-        try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testMessageIdGeneration")) {
+        try (TestFolder testFolder = new TestFolder("MappedQueueTest", "testMessageIdGeneration")) {
             try (
                     MappedQueue queue = new MappedQueue(testFolder.getRoot(), 5000, 60 * 1000);
             ) {
