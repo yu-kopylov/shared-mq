@@ -284,10 +284,6 @@ public class IOPerformanceTest {
             }
             timer.stop();
 
-            // A mapped byte buffer and the file mapping that it represents
-            // remain valid until the buffer itself is garbage-collected.
-            System.gc();
-
             printResult("MappedByteBuffer (" + formatSize(fileSize) + ", Create)", timer, iterations);
         }
     }
@@ -320,7 +316,6 @@ public class IOPerformanceTest {
             // remain valid until the buffer itself is garbage-collected.
             buffer1 = null;
             buffer2 = null;
-            System.gc();
 
             printResult("MappedByteBuffer (" + formatSize(fileSize) + ", Sequential Write)", sequentialWriteTimer, entriesCount);
             printResult("MappedByteBuffer (" + formatSize(fileSize) + ", Sequential Read)", sequentialReadTimer, entriesCount);
@@ -362,7 +357,6 @@ public class IOPerformanceTest {
                 // remain valid until the buffer itself is garbage-collected.
                 buffer1 = null;
                 buffer2 = null;
-                System.gc();
             }
         }
     }

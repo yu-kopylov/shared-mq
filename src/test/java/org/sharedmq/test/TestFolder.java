@@ -51,6 +51,11 @@ public class TestFolder implements Closeable {
      */
     @Override
     public void close() throws IOException {
+
+        // A mapped byte buffer and the file mapping that it represents
+        // remain valid until the buffer itself is garbage-collected.
+        System.gc();
+
         FileUtils.deleteTree(root);
     }
 }

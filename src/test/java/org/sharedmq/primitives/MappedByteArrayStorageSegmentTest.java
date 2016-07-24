@@ -74,7 +74,6 @@ public class MappedByteArrayStorageSegmentTest {
             // A mapped byte buffer and the file mapping that it represents
             // remain valid until the buffer itself is garbage-collected.
             buffer = null;
-            System.gc();
         }
     }
 
@@ -151,7 +150,6 @@ public class MappedByteArrayStorageSegmentTest {
             // A mapped byte buffer and the file mapping that it represents
             // remain valid until the buffer itself is garbage-collected.
             buffer = null;
-            System.gc();
         }
     }
 
@@ -272,7 +270,6 @@ public class MappedByteArrayStorageSegmentTest {
             // A mapped byte buffer and the file mapping that it represents
             // remain valid until the buffer itself is garbage-collected.
             buffer = null;
-            System.gc();
         }
     }
 
@@ -315,7 +312,6 @@ public class MappedByteArrayStorageSegmentTest {
             // A mapped byte buffer and the file mapping that it represents
             // remain valid until the buffer itself is garbage-collected.
             buffer = null;
-            System.gc();
         }
     }
 
@@ -356,7 +352,6 @@ public class MappedByteArrayStorageSegmentTest {
             // A mapped byte buffer and the file mapping that it represents
             // remain valid until the buffer itself is garbage-collected.
             buffer = null;
-            System.gc();
         }
     }
 }

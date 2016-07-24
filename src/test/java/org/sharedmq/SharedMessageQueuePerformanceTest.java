@@ -28,79 +28,42 @@ public class SharedMessageQueuePerformanceTest {
     public void testPushPullDelete() throws IOException, InterruptedException {
         //todo: shorten folder name
         try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushPullDelete")) {
-            try {
-                testPushPullDelete(testFolder.getRoot(), 1, 500000, 32);
-            } finally {
-                //todo: move this code to TestFolder
-                // A mapped byte buffer and the file mapping that it represents
-                // remain valid until the buffer itself is garbage-collected.
-                System.gc();
-            }
+            testPushPullDelete(testFolder.getRoot(), 1, 500000, 32);
         }
     }
 
     @Test
     public void testPushPullDeleteWith2Threads() throws IOException, InterruptedException {
         try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushPullDeleteWith2Threads")) {
-            try {
-                testPushPullDelete(testFolder.getRoot(), 2, 250000, 32);
-            } finally {
-                // A mapped byte buffer and the file mapping that it represents
-                // remain valid until the buffer itself is garbage-collected.
-                System.gc();
-            }
+            testPushPullDelete(testFolder.getRoot(), 2, 250000, 32);
         }
     }
 
     @Test
     public void testPushPullDeleteWith10Threads() throws IOException, InterruptedException {
         try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushPullDeleteWith10Threads")) {
-            try {
-                testPushPullDelete(testFolder.getRoot(), 10, 50000, 32);
-            } finally {
-                // A mapped byte buffer and the file mapping that it represents
-                // remain valid until the buffer itself is garbage-collected.
-                System.gc();
-            }
+            testPushPullDelete(testFolder.getRoot(), 10, 50000, 32);
         }
     }
 
     @Test
     public void testPushAllPullAllDeleteAll() throws IOException, InterruptedException {
         try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushAllPullAllDeleteAll")) {
-            try {
-                testPushAllPullAllDeleteAll(testFolder.getRoot(), 1, 500000, 32);
-            } finally {
-                // A mapped byte buffer and the file mapping that it represents
-                // remain valid until the buffer itself is garbage-collected.
-                System.gc();
-            }
+            testPushAllPullAllDeleteAll(testFolder.getRoot(), 1, 500000, 32);
         }
     }
 
     @Test
     public void testPushAllPullAllDeleteWith2Threads() throws IOException, InterruptedException {
         try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushAllPullAllDeleteWith2Threads")) {
-            try {
-                testPushAllPullAllDeleteAll(testFolder.getRoot(), 2, 250000, 32);
-            } finally {
-                // A mapped byte buffer and the file mapping that it represents
-                // remain valid until the buffer itself is garbage-collected.
-                System.gc();
-            }
+            testPushAllPullAllDeleteAll(testFolder.getRoot(), 2, 250000, 32);
         }
     }
 
     @Test
     public void testPushAllPullAllDeleteWith10Threads() throws IOException, InterruptedException {
         try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushAllPullAllDeleteWith10Threads")) {
-            try {
-                testPushAllPullAllDeleteAll(testFolder.getRoot(), 10, 50000, 32);
-            } finally {
-                // A mapped byte buffer and the file mapping that it represents
-                // remain valid until the buffer itself is garbage-collected.
-                System.gc();
-            }
+            testPushAllPullAllDeleteAll(testFolder.getRoot(), 10, 50000, 32);
         }
     }
 
@@ -108,13 +71,7 @@ public class SharedMessageQueuePerformanceTest {
     public void testPushAllPullAllDeleteAllWithBigMessages() throws IOException, InterruptedException {
         // Note: this test requires around 640Mb on the disc.
         try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushAllPullAllDeleteAllWithBigMessages")) {
-            try {
-                testPushAllPullAllDeleteAll(testFolder.getRoot(), 2, 5000, 64 * 1024);
-            } finally {
-                // A mapped byte buffer and the file mapping that it represents
-                // remain valid until the buffer itself is garbage-collected.
-                System.gc();
-            }
+            testPushAllPullAllDeleteAll(testFolder.getRoot(), 2, 5000, 64 * 1024);
         }
     }
 
