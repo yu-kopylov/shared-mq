@@ -3,8 +3,8 @@ package org.sharedmq;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.sharedmq.internals.MappedQueueMessage;
-import org.sharedmq.internals.QueueServiceParametersValidator;
-import org.sharedmq.internals.QueueServiceParametersValidatorTest;
+import org.sharedmq.internals.QueueParametersValidator;
+import org.sharedmq.internals.QueueParametersValidatorTest;
 import org.sharedmq.test.AdjustableMappedQueue;
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
@@ -297,11 +297,12 @@ public class MappedQueueServiceTest {
     }
 
     /**
-     * This tests only checks that service methods call {@link QueueServiceParametersValidator}.<br/>
-     * More rigorous parameter testing is implemented in {@link QueueServiceParametersValidatorTest}.
+     * This test only checks that public methods of the {@link MappedQueue}
+     * call {@link QueueParametersValidator}.<br/>
+     * More rigorous parameter testing is implemented in {@link QueueParametersValidatorTest}.
      */
     @Test
-    public void testParameterValidation() throws IOException {
+    public void testParameterValidation() throws IOException, InterruptedException {
 
         class FakeMessage implements Message {
             @Override
@@ -311,23 +312,25 @@ public class MappedQueueServiceTest {
         }
 
         try (TestFolder testFolder = new TestFolder("MappedQueueServiceTest", "testQueueNameCase")) {
-            try (MappedQueueService service = new MappedQueueService(testFolder.getRoot())) {
+
+            assertThrows(
+                    IllegalArgumentException.class,
+                    "rootFolder parameter cannot be null",
+                    () -> new MappedQueue(null, 0, 120));
+
+            try (MappedQueue service = new MappedQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
                 assertThrows(
                         IllegalArgumentException.class,
-                        "queue name can contain only alphanumeric characters, hyphens and underscores",
-                        () -> service.createQueue("!WrongQueeName", 0, 120));
+                        "delay in milliseconds must be between 0 and 900000",
+                        () -> service.push(-1, "Message"));
                 assertThrows(
                         IllegalArgumentException.class,
-                        "delay in seconds must be between 0 and 900",
-                        () -> service.push("QueueURL", -1, "Message"));
+                        "timeout in milliseconds must be between 0 and 20000",
+                        () -> service.pull(-1));
                 assertThrows(
                         IllegalArgumentException.class,
-                        "timeout in seconds must be between 0 and 20",
-                        () -> service.pull("QueueURL", -1));
-                assertThrows(
-                        IllegalArgumentException.class,
-                        "message does not belong to this type of a message queue",
-                        () -> service.delete("QueueURL", new FakeMessage()));
+                        "message type does not belong to this message queue",
+                        () -> service.delete(new FakeMessage()));
             } finally {
                 // A mapped byte buffer and the file mapping that it represents
                 // remain valid until the buffer itself is garbage-collected.

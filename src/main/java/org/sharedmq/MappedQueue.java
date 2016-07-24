@@ -61,22 +61,25 @@ public class MappedQueue implements Closeable {
      * Creates all necessary files and folders for a queue in the given folder,
      * including the root folder, if they do not exist.
      *
-     * @param rootFolder        The root folder for the queue.
-     * @param visibilityTimeout The amount of time (in milliseconds) that a message received from a queue
+     * @param rootFolder        The folder where queue should be created.
+     * @param visibilityTimeout The amount of time in milliseconds that a message received from a queue
      *                          will be invisible to other receiving components.
      *                          Value must be between 0 seconds and 12 hours.
-     * @param retentionPeriod   The amount of time (in milliseconds) that the queue will retain a message
+     * @param retentionPeriod   The amount of time in milliseconds that the queue will retain a message
      *                          if it does not get deleted.
-     *                          Value must be between 1 minute and 14 days.
-     * @throws IOException          If the queue cannot be created in the given folder;
-     *                              or if folder already has a queue with different parameters.
-     * @throws InterruptedException If the current operation was interrupted.
+     *                          Value must be between 15 seconds and 14 days.
+     * @throws IllegalArgumentException If parameters are invalid.
+     * @throws IOException              If the queue cannot be created in the given folder;
+     *                                  or if folder already has a queue with different parameters.
+     * @throws InterruptedException     If the current operation was interrupted.
      */
     public MappedQueue(
             File rootFolder,
             long visibilityTimeout,
             long retentionPeriod
     ) throws IOException, InterruptedException {
+
+        QueueParametersValidator.validateCreateQueue(rootFolder, visibilityTimeout, retentionPeriod);
 
         this.rootFolder = rootFolder.getCanonicalFile();
 
@@ -115,11 +118,14 @@ public class MappedQueue implements Closeable {
      * Expects that a queue already exist in that folder.<br/>
      * Reads the configuration from the existing queue.
      *
-     * @param rootFolder The root folder for the queue.
-     * @throws IOException          If the queue does not exist in the given folder.
-     * @throws InterruptedException If the current operation was interrupted.
+     * @param rootFolder The folder where queue is located.
+     * @throws IllegalArgumentException If parameters are invalid.
+     * @throws IOException              If the queue does not exist in the given folder.
+     * @throws InterruptedException     If the current operation was interrupted.
      */
     public MappedQueue(File rootFolder) throws IOException, InterruptedException {
+
+        QueueParametersValidator.validateOpenQueue(rootFolder);
 
         this.rootFolder = rootFolder.getAbsoluteFile();
 
@@ -160,12 +166,16 @@ public class MappedQueue implements Closeable {
     /**
      * Pushes a new message to the queue.
      *
-     * @param delay The amount of time in milliseconds to delay the first delivery of this message.
-     * @param body  The body of the message.
-     * @throws IOException          If an I/O error occurs.
-     * @throws InterruptedException If the current operation was interrupted.
+     * @param delay   The amount of time in milliseconds to delay the first delivery of this message.
+     *                Value must be between 0 seconds and 15 minutes.
+     * @param message The message to push.
+     * @throws IllegalArgumentException If parameters are invalid.
+     * @throws IOException              If an I/O error occurs.
+     * @throws InterruptedException     If the current operation was interrupted.
      */
-    public void push(long delay, String body) throws IOException, InterruptedException {
+    public void push(long delay, String message) throws IOException, InterruptedException {
+
+        QueueParametersValidator.validatePush(delay, message);
 
         try (MappedByteBufferLock lock = config.acquireLock()) {
 
@@ -191,7 +201,7 @@ public class MappedQueue implements Closeable {
             MappedQueueHeapRecord heapRecord = new MappedQueueHeapRecord(messageNumber, visibleSince);
             header.setHeapIndex(priorityQueue.add(heapRecord));
 
-            header.setBodyKey(messageContents.add(body.getBytes(encoding)));
+            header.setBodyKey(messageContents.add(message.getBytes(encoding)));
 
             if (messageNumber >= headers.size()) {
                 headers.add(header);
@@ -201,7 +211,19 @@ public class MappedQueue implements Closeable {
         }
     }
 
+    /**
+     * Retrieves a single message from the queue.
+     *
+     * @param timeout Timeout for this operation in milliseconds.
+     *                Value must be between 0 and 20 seconds.
+     *                If timeout is equal to zero, then pull operation does not wait for new messages.
+     * @throws IllegalArgumentException If parameters are invalid.
+     * @throws IOException              If an I/O error occurs.
+     * @throws InterruptedException     If operation was interrupted.
+     */
     public Message pull(long timeout) throws IOException, InterruptedException {
+
+        QueueParametersValidator.validatePull(timeout);
 
         long start = getTime();
 
@@ -217,6 +239,43 @@ public class MappedQueue implements Closeable {
         }
 
         return message;
+    }
+
+    /**
+     * Deletes a message, that was received by pull, from the queue.
+     *
+     * @param message The message to delete.
+     * @throws IllegalArgumentException If parameters are invalid.
+     * @throws IOException              If an I/O error occurs.
+     * @throws InterruptedException     If operation was interrupted.
+     */
+    public void delete(Message message) throws IOException, InterruptedException {
+
+        QueueParametersValidator.validateDelete(message);
+
+        MappedQueueMessage queueMessage = (MappedQueueMessage) message;
+
+        if (!rootFolder.equals(queueMessage.getQueueFolder())) {
+            throw new IllegalArgumentException(
+                    "This message was not received from this queue (" +
+                            "Queue Folder: '" + rootFolder + "', " +
+                            "Message Folder: '" + queueMessage.getQueueFolder() + "').");
+        }
+
+        try (MappedByteBufferLock lock = config.acquireLock()) {
+
+            int messageNumber = queueMessage.getHeader().getMessageNumber();
+            if (messageNumber >= headers.size()) {
+                // currently this should be impossible, because the headers list is never truncated
+                throw new IllegalStateException("Invalid message number (" + messageNumber + ").");
+            }
+            MappedQueueMessageHeader currentHeader = headers.get(messageNumber);
+            if (currentHeader == null || currentHeader.getMessageId() != queueMessage.getHeader().getMessageId()) {
+                // message was already deleted
+                return;
+            }
+            deleteMessage(currentHeader);
+        }
     }
 
     private void waitForMessage(long timeout) throws InterruptedException {
@@ -254,7 +313,7 @@ public class MappedQueue implements Closeable {
      * Returns the amount of time to wait for the next message in the queue to become available.<br/>
      * If there is no next message, then {@link Long#MAX_VALUE} is returned.
      */
-    public long getTimeTillNextMessage() throws IOException, InterruptedException {
+    private long getTimeTillNextMessage() throws IOException, InterruptedException {
         // We are checking, when the next message will become visible.
         // We do not want to miss that moment.
 
@@ -316,36 +375,6 @@ public class MappedQueue implements Closeable {
     private MappedQueueMessageHeader peekNextMessageHeader() throws IOException, InterruptedException {
         MappedQueueHeapRecord firstHeapRecord = priorityQueue.peek();
         return firstHeapRecord == null ? null : headers.get(firstHeapRecord.getMessageNumber());
-    }
-
-    public void delete(Message message) throws IOException, InterruptedException {
-        if (!(message instanceof MappedQueueMessage)) {
-            throw new IllegalArgumentException("This message was not received with MappedQueueService.");
-        }
-
-        MappedQueueMessage queueMessage = (MappedQueueMessage) message;
-
-        if (!rootFolder.equals(queueMessage.getQueueFolder())) {
-            throw new IllegalArgumentException(
-                    "This message was not received from this queue (" +
-                            "Queue Folder: '" + rootFolder + "', " +
-                            "Message Folder: '" + queueMessage.getQueueFolder() + "').");
-        }
-
-        try (MappedByteBufferLock lock = config.acquireLock()) {
-
-            int messageNumber = queueMessage.getHeader().getMessageNumber();
-            if (messageNumber >= headers.size()) {
-                // currently this should be impossible, because the headers list is never truncated
-                throw new IllegalStateException("Invalid message number (" + messageNumber + ").");
-            }
-            MappedQueueMessageHeader currentHeader = headers.get(messageNumber);
-            if (currentHeader == null || currentHeader.getMessageId() != queueMessage.getHeader().getMessageId()) {
-                // message was already deleted
-                return;
-            }
-            deleteMessage(currentHeader);
-        }
     }
 
     /**

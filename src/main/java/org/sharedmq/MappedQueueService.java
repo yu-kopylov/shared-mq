@@ -1,7 +1,5 @@
 package org.sharedmq;
 
-import org.sharedmq.internals.MappedQueueMessage;
-import org.sharedmq.internals.QueueServiceParametersValidator;
 import org.sharedmq.util.FileUtils;
 
 import java.io.Closeable;
@@ -51,8 +49,6 @@ public class MappedQueueService implements Closeable {
      */
     public String createQueue(String queueName, int visibilityTimeout, int retentionPeriod) throws IOException, InterruptedException {
 
-        QueueServiceParametersValidator.validateCreateQueue(queueName, visibilityTimeout, retentionPeriod);
-
         String queueUrl = normalizeQueueName(queueName);
 
         synchronized (queuesMonitor) {
@@ -85,11 +81,6 @@ public class MappedQueueService implements Closeable {
      */
     public void push(String queueUrl, int delay, String message) throws InterruptedException, IOException {
 
-        QueueServiceParametersValidator.validatePush(queueUrl, delay, message);
-        // In the MappedQueueService the queue URL matches the queue name.
-        // So the same restrictions apply to queue URL.
-        QueueServiceParametersValidator.validateQueueName(queueUrl);
-
         MappedQueue queue = getOrCreateQueue(queueUrl);
         queue.push(delay * 1000L, message);
     }
@@ -108,11 +99,6 @@ public class MappedQueueService implements Closeable {
      */
     public Message pull(String queueUrl, int timeout) throws InterruptedException, IOException {
 
-        QueueServiceParametersValidator.validatePull(queueUrl, timeout);
-        // In the MappedQueueService the queue URL matches the queue name.
-        // So the same restrictions apply to queue URL.
-        QueueServiceParametersValidator.validateQueueName(queueUrl);
-
         MappedQueue queue = getOrCreateQueue(queueUrl);
         return queue.pull(timeout * 1000L);
     }
@@ -127,11 +113,6 @@ public class MappedQueueService implements Closeable {
      * @throws InterruptedException     If operation was interrupted.
      */
     public void delete(String queueUrl, Message message) throws InterruptedException, IOException {
-
-        QueueServiceParametersValidator.validateDelete(queueUrl, message, MappedQueueMessage.class);
-        // In the MappedQueueService the queue URL matches the queue name.
-        // So the same restrictions apply to queue URL.
-        QueueServiceParametersValidator.validateQueueName(queueUrl);
 
         MappedQueue queue = getOrCreateQueue(queueUrl);
         queue.delete(message);
