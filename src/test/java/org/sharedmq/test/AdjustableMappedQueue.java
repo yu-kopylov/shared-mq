@@ -1,6 +1,5 @@
 package org.sharedmq.test;
 
-import org.sharedmq.MappedQueueService;
 import org.sharedmq.MappedQueue;
 
 import java.io.File;

@@ -13,7 +13,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /**
- * This class serves one queue defined by a queue URL within {@link MappedQueueService}.
+ * A message queue based on memory-mapped files.
  */
 public class MappedQueue implements Closeable {
 

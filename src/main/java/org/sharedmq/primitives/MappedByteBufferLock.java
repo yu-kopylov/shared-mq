@@ -22,7 +22,7 @@ public class MappedByteBufferLock implements AutoCloseable {
 
     public static final long UnlockedTimestamp = 0;
 
-    // MappedQueueService operations are fast, we expect each operation to be completed in less than 1ms.
+    // MappedQueue operations are fast, we expect each operation to be completed in less than 1ms.
     // So, we are using the minimal recheck interval.
     // A more advanced strategy with a variable interval can be used to reduce contention.
     // For now, this simple solution is sufficient.
