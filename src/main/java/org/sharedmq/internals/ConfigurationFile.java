@@ -31,10 +31,6 @@ public class ConfigurationFile implements Closeable {
     private FileChannel fileChannel;
     private MappedByteBuffer buffer;
 
-    // this values never change and can be cached
-    private final long visibilityTimeout;
-    private final long retentionPeriod;
-
     public ConfigurationFile(File file) throws IOException, InterruptedException {
 
         MappedByteBufferLock lock = null;
@@ -49,9 +45,6 @@ public class ConfigurationFile implements Closeable {
             if (fileMarker != FileMarker) {
                 throw new IOException("The file '" + file.getAbsolutePath() + "' is not a SharedMessageQueue configuration file.");
             }
-            this.visibilityTimeout = buffer.getLong(VisibilityTimeoutOffset);
-            this.retentionPeriod = buffer.getLong(RetentionPeriodOffset);
-
         } catch (Throwable e) {
             buffer = null;
             FileUtils.closeOnError(e, fileChannel, randomAccessFile);
@@ -61,11 +54,8 @@ public class ConfigurationFile implements Closeable {
         }
     }
 
-    public ConfigurationFile(
-            File file,
-            long visibilityTimeout,
-            long retentionPeriod
-    ) throws IOException, InterruptedException {
+    public ConfigurationFile(File file, Configuration configuration) throws IOException, InterruptedException {
+
         MappedByteBufferLock lock = null;
 
         try {
@@ -78,17 +68,13 @@ public class ConfigurationFile implements Closeable {
             int fileMarker = buffer.getInt(FileMarkerOffset);
             if (fileMarker != FileMarker) {
                 // assuming that this is a new file
-                this.visibilityTimeout = visibilityTimeout;
-                this.retentionPeriod = retentionPeriod;
-
                 buffer.putInt(FileMarkerOffset, FileMarker);
-                buffer.putLong(VisibilityTimeoutOffset, visibilityTimeout);
-                buffer.putLong(RetentionPeriodOffset, retentionPeriod);
+                buffer.putLong(VisibilityTimeoutOffset, configuration.getVisibilityTimeout());
+                buffer.putLong(RetentionPeriodOffset, configuration.getRetentionPeriod());
                 buffer.putLong(NextMessageIdOffset, 0);
             } else {
-                this.visibilityTimeout = buffer.getLong(VisibilityTimeoutOffset);
-                this.retentionPeriod = buffer.getLong(RetentionPeriodOffset);
-                if (this.visibilityTimeout != visibilityTimeout || this.retentionPeriod != retentionPeriod) {
+                Configuration existingConfiguration = readConfiguration(buffer);
+                if (!existingConfiguration.equals(configuration)) {
                     throw new IOException("A queue configuration file already exists and have different parameters.");
                 }
             }
@@ -112,17 +98,21 @@ public class ConfigurationFile implements Closeable {
         return new MappedByteBufferLock(buffer, LockOffsetOffset);
     }
 
-    public long getVisibilityTimeout() {
-        return visibilityTimeout;
-    }
-
-    public long getRetentionPeriod() {
-        return retentionPeriod;
-    }
-
+    //todo: this method requires lock
     public long getNextMessageId() {
         long id = buffer.getLong(NextMessageIdOffset);
         buffer.putLong(NextMessageIdOffset, id + 1);
         return id;
+    }
+
+    //todo: this method requires lock
+    public Configuration getConfiguration() {
+        return readConfiguration(buffer);
+    }
+
+    private static Configuration readConfiguration(MappedByteBuffer buffer) {
+        long visibilityTimeout = buffer.getLong(VisibilityTimeoutOffset);
+        long retentionPeriod = buffer.getLong(RetentionPeriodOffset);
+        return new Configuration(visibilityTimeout, retentionPeriod);
     }
 }

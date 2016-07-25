@@ -24,13 +24,15 @@ public class ConfigurationFileTest {
                     "is not a SharedMessageQueue configuration file",
                     () -> new ConfigurationFile(file));
 
-            try (ConfigurationFile config = new ConfigurationFile(file, 123, 456)) {
+            try (ConfigurationFile configFile = new ConfigurationFile(file, new Configuration(123, 456))) {
+                Configuration config = configFile.getConfiguration();
                 assertEquals(config.getVisibilityTimeout(), 123);
                 assertEquals(config.getRetentionPeriod(), 456);
             }
 
             // creating a config file with same parameters
-            try (ConfigurationFile config = new ConfigurationFile(file, 123, 456)) {
+            try (ConfigurationFile configFile = new ConfigurationFile(file, new Configuration(123, 456))) {
+                Configuration config = configFile.getConfiguration();
                 assertEquals(config.getVisibilityTimeout(), 123);
                 assertEquals(config.getRetentionPeriod(), 456);
             }
@@ -39,18 +41,47 @@ public class ConfigurationFileTest {
             assertThrows(
                     IOException.class,
                     "exists and have different parameters",
-                    () -> new ConfigurationFile(file, 111, 456));
+                    () -> new ConfigurationFile(file, new Configuration(111, 456)));
 
             // creating a config file with different parameter (retentionPeriod)
             assertThrows(
                     IOException.class,
                     "exists and have different parameters",
-                    () -> new ConfigurationFile(file, 123, 444));
+                    () -> new ConfigurationFile(file, new Configuration(123, 444)));
 
             // obtaining parameters from the configuration file
-            try (ConfigurationFile config = new ConfigurationFile(file)) {
+            try (ConfigurationFile configFile = new ConfigurationFile(file)) {
+                Configuration config = configFile.getConfiguration();
                 assertEquals(config.getVisibilityTimeout(), 123);
                 assertEquals(config.getRetentionPeriod(), 456);
+            }
+        }
+    }
+
+    @Test
+    public void testNextMessageId() throws IOException, InterruptedException {
+        try (TestFolder testFolder = new TestFolder("ConfigurationFileTest", "testNextMessageId")) {
+
+            File file = testFolder.getFile("config.dat");
+
+            try (ConfigurationFile configFile = new ConfigurationFile(file, new Configuration(100, 200))) {
+                assertEquals(0, configFile.getNextMessageId());
+                assertEquals(1, configFile.getNextMessageId());
+                assertEquals(2, configFile.getNextMessageId());
+            }
+
+            // lets reopen file
+            try (ConfigurationFile configFile = new ConfigurationFile(file, new Configuration(100, 200))) {
+                assertEquals(3, configFile.getNextMessageId());
+                assertEquals(4, configFile.getNextMessageId());
+                assertEquals(5, configFile.getNextMessageId());
+            }
+
+            // lets reopen file with different method
+            try (ConfigurationFile configFile = new ConfigurationFile(file)) {
+                assertEquals(6, configFile.getNextMessageId());
+                assertEquals(7, configFile.getNextMessageId());
+                assertEquals(8, configFile.getNextMessageId());
             }
         }
     }

@@ -30,10 +30,15 @@ public class SharedMessageQueue implements Closeable {
     private final File rootFolder;
 
     /**
+     * This field stores parameters of the queue.
+     */
+    private Configuration config;
+
+    /**
      * This is a configuration file.<br/>
      * Is stores queue parameters, and also is used for locks.
      */
-    private ConfigurationFile config;
+    private ConfigurationFile configFile;
 
     /**
      * This file contains message parameters and references to the priority queue and content storage.
@@ -86,9 +91,11 @@ public class SharedMessageQueue implements Closeable {
         FileUtils.createFolder(rootFolder);
 
         try {
-            config = new ConfigurationFile(new File(rootFolder, ConfigFilename), visibilityTimeout, retentionPeriod);
+            config = new Configuration(visibilityTimeout, retentionPeriod);
 
-            try (MappedByteBufferLock lock = config.acquireLock()) {
+            configFile = new ConfigurationFile(new File(rootFolder, ConfigFilename), config);
+
+            try (MappedByteBufferLock lock = configFile.acquireLock()) {
 
                 headers = new MappedArrayList<>(
                         new File(rootFolder, MessageHeadersFilename),
@@ -108,7 +115,7 @@ public class SharedMessageQueue implements Closeable {
 
             priorityQueue.register(this::updateHeapIndex);
         } catch (Throwable e) {
-            FileUtils.closeOnError(e, config, headers, freeHeaders, priorityQueue, messageContents);
+            FileUtils.closeOnError(e, configFile, headers, freeHeaders, priorityQueue, messageContents);
             throw e;
         }
     }
@@ -130,9 +137,9 @@ public class SharedMessageQueue implements Closeable {
         this.rootFolder = rootFolder.getAbsoluteFile();
 
         try {
-            config = new ConfigurationFile(new File(rootFolder, ConfigFilename));
+            configFile = new ConfigurationFile(new File(rootFolder, ConfigFilename));
 
-            try (MappedByteBufferLock lock = config.acquireLock()) {
+            try (MappedByteBufferLock lock = configFile.acquireLock()) {
 
                 headers = new MappedArrayList<>(
                         new File(rootFolder, MessageHeadersFilename),
@@ -148,11 +155,13 @@ public class SharedMessageQueue implements Closeable {
                         PriorityQueueRecord::compareVisibility);
 
                 messageContents = new MappedByteArrayStorage(new File(rootFolder, MessageContentsFilename));
+
+                config = configFile.getConfiguration();
             }
 
             priorityQueue.register(this::updateHeapIndex);
         } catch (Throwable e) {
-            FileUtils.closeOnError(e, config, headers, freeHeaders, priorityQueue, messageContents);
+            FileUtils.closeOnError(e, configFile, headers, freeHeaders, priorityQueue, messageContents);
             throw e;
         }
     }
@@ -160,7 +169,7 @@ public class SharedMessageQueue implements Closeable {
 
     @Override
     public void close() throws IOException {
-        FileUtils.close(config, headers, freeHeaders, messageContents, priorityQueue);
+        FileUtils.close(configFile, headers, freeHeaders, messageContents, priorityQueue);
     }
 
     /**
@@ -177,11 +186,11 @@ public class SharedMessageQueue implements Closeable {
 
         QueueParametersValidator.validatePush(delay, message);
 
-        try (MappedByteBufferLock lock = config.acquireLock()) {
+        try (MappedByteBufferLock lock = configFile.acquireLock()) {
 
             long now = getTime();
 
-            long messageId = config.getNextMessageId();
+            long messageId = configFile.getNextMessageId();
 
             int messageNumber;
             if (freeHeaders.size() > 0) {
@@ -262,7 +271,7 @@ public class SharedMessageQueue implements Closeable {
                             "Message Folder: '" + queueMessage.getQueueFolder() + "').");
         }
 
-        try (MappedByteBufferLock lock = config.acquireLock()) {
+        try (MappedByteBufferLock lock = configFile.acquireLock()) {
 
             int messageNumber = queueMessage.getHeader().getMessageNumber();
             if (messageNumber >= headers.size()) {
@@ -318,7 +327,7 @@ public class SharedMessageQueue implements Closeable {
         // We do not want to miss that moment.
 
         PriorityQueueRecord nextRecord;
-        try (MappedByteBufferLock lock = config.acquireLock()) {
+        try (MappedByteBufferLock lock = configFile.acquireLock()) {
             nextRecord = priorityQueue.peek();
         }
         if (nextRecord == null) {
@@ -333,7 +342,7 @@ public class SharedMessageQueue implements Closeable {
     }
 
     private SharedQueueMessage pollMessage() throws IOException, InterruptedException {
-        try (MappedByteBufferLock lock = config.acquireLock()) {
+        try (MappedByteBufferLock lock = configFile.acquireLock()) {
 
             long now = getTime();
 
