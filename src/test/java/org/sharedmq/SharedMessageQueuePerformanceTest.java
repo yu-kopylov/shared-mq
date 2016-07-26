@@ -28,21 +28,21 @@ public class SharedMessageQueuePerformanceTest {
     public void testPushPullDelete() throws IOException, InterruptedException {
         //todo: shorten folder name
         try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushPullDelete")) {
-            testPushPullDelete(testFolder.getRoot(), 1, 500000, 32);
+            testPushPullDelete(testFolder.getRoot(), 1, 5000000, 32);
         }
     }
 
     @Test
     public void testPushPullDeleteWith2Threads() throws IOException, InterruptedException {
         try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushPullDeleteWith2Threads")) {
-            testPushPullDelete(testFolder.getRoot(), 2, 250000, 32);
+            testPushPullDelete(testFolder.getRoot(), 2, 2500000, 32);
         }
     }
 
     @Test
     public void testPushPullDeleteWith10Threads() throws IOException, InterruptedException {
         try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushPullDeleteWith10Threads")) {
-            testPushPullDelete(testFolder.getRoot(), 10, 50000, 32);
+            testPushPullDelete(testFolder.getRoot(), 10, 500000, 32);
         }
     }
 
@@ -126,7 +126,7 @@ public class SharedMessageQueuePerformanceTest {
             printResult("testPushPullDelete: ", ended - started, totalMessageCount);
 
             // Sanity check. No messages should remain in the queue.
-            assertNull(queue.pull(PullTimeout));
+            assertEquals(0, queue.size());
             assertEquals(0, errorCount.get());
         }
     }
@@ -251,7 +251,7 @@ public class SharedMessageQueuePerformanceTest {
             long deleteEnded = System.currentTimeMillis();
 
             // Sanity check. No messages should remain in the queue.
-            assertNull(queue.pull(PullTimeout));
+            assertEquals(0, queue.size());
             assertEquals(0, errorCount.get());
 
             long deleteTime = deleteEnded - deleteStarted;

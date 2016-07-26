@@ -378,7 +378,7 @@ public class IOPerformanceTest {
         for (int i = 0; i < operationCount; i++) {
             Thread.yield();
         }
-        printResult("Thread.yield(0)", sw, operationCount);
+        printResult("Thread.yield", sw, operationCount);
 
         sw = Stopwatch.createStarted();
         for (int i = 0; i < operationCount; i++) {
