@@ -19,7 +19,7 @@ import java.nio.channels.FileChannel;
 public class MappedArrayList<TRecord> implements Closeable {
 
     private static final long MaxFileSize = Integer.MAX_VALUE;
-    private static final int AllocationUnit = 4 * 1024;
+    private static final int AllocationUnit = 64 * 1024;
 
     private static final int FileMarker = 0x4D4D414C;
     private static final int FileMarkerOffset = 0;
