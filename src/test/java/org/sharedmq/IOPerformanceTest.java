@@ -391,6 +391,24 @@ public class IOPerformanceTest {
             Thread.sleep(5);
         }
         printResult("Thread.sleep(5)", sw, operationCount);
+
+        Object monitor = new Object();
+
+        sw = Stopwatch.createStarted();
+        for (int i = 0; i < operationCount; i++) {
+            synchronized (monitor){
+                monitor.wait(1);
+            }
+        }
+        printResult("Object.wait(1)", sw, operationCount);
+
+        sw = Stopwatch.createStarted();
+        for (int i = 0; i < operationCount; i++) {
+            synchronized (monitor){
+                monitor.wait(5);
+            }
+        }
+        printResult("Object.wait(5)", sw, operationCount);
     }
 
     @Test

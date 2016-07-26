@@ -255,7 +255,7 @@ public class SharedMessageQueuePerformanceTest {
             assertEquals(0, errorCount.get());
 
             long deleteTime = deleteEnded - deleteStarted;
-            printResult("testPushAllPullAllDeleteAll: delete", deleteTime, messagesPerThread);
+            printResult("testPushAllPullAllDeleteAll: delete", deleteTime, totalMessageCount);
 
             long totalTime = pushTime + pullTime + deleteTime;
             printResult("testPushAllPullAllDeleteAll: push+pull+delete", totalTime, totalMessageCount);
