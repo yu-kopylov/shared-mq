@@ -50,13 +50,16 @@ public class QueueTester {
         }));
 
         String mode = args[0];
-        if (mode.equals(SendMode)) {
-            send(args[1]);
-        } else if (mode.equals(ReceiveMode)) {
-            receive(args[1]);
-        } else {
-            printUsage();
-            System.exit(1);
+        switch (mode) {
+            case SendMode:
+                send(args[1]);
+                break;
+            case ReceiveMode:
+                receive(args[1]);
+                break;
+            default:
+                printUsage();
+                System.exit(1);
         }
     }
 
