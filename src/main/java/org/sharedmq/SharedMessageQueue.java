@@ -93,7 +93,7 @@ public class SharedMessageQueue implements Closeable {
         try {
             config = new Configuration(visibilityTimeout, retentionPeriod);
 
-            configFile = new ConfigurationFile(new File(rootFolder, ConfigFilename), config);
+            configFile = ConfigurationFile.create(new File(rootFolder, ConfigFilename), config);
 
             try (MappedByteBufferLock lock = configFile.acquireLock()) {
 
@@ -137,7 +137,7 @@ public class SharedMessageQueue implements Closeable {
         this.rootFolder = rootFolder.getAbsoluteFile();
 
         try {
-            configFile = new ConfigurationFile(new File(rootFolder, ConfigFilename));
+            configFile = ConfigurationFile.open(new File(rootFolder, ConfigFilename));
 
             try (MappedByteBufferLock lock = configFile.acquireLock()) {
 

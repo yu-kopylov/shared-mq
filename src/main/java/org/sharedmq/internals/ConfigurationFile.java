@@ -12,9 +12,8 @@ import java.nio.channels.FileChannel;
  * Represents a configuration file for the {@link SharedMessageQueue}.<br/>
  * It also serves as a lock container.<br/>
  * <br/>
- * This class is not thread-safe, except for the constructors.<br/>
- * The {@link #acquireLock()} method can be used to synchronize access
- * to memory mapped files between threads and processes.
+ * This class is not thread-safe.<br/>
+ * The {@link #acquireLock()} method can be used to synchronize access between threads and processes.
  */
 public class ConfigurationFile implements Closeable {
 
@@ -31,61 +30,112 @@ public class ConfigurationFile implements Closeable {
     private FileChannel fileChannel;
     private MappedByteBuffer buffer;
 
-    public ConfigurationFile(File file) throws IOException, InterruptedException {
-
-        MappedByteBufferLock lock = null;
-
-        try {
-            randomAccessFile = new RandomAccessFile(file, "rw");
-            fileChannel = randomAccessFile.getChannel();
-            buffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, FileSize);
-
-            lock = acquireLock();
-            int fileMarker = buffer.getInt(FileMarkerOffset);
-            if (fileMarker != FileMarker) {
-                throw new IOException("The file '" + file.getAbsolutePath() + "' is not a SharedMessageQueue configuration file.");
-            }
-        } catch (Throwable e) {
-            buffer = null;
-            FileUtils.closeOnError(e, fileChannel, randomAccessFile);
-            throw e;
-        } finally {
-            FileUtils.close(lock);
-        }
+    private ConfigurationFile(RandomAccessFile randomAccessFile, FileChannel fileChannel, MappedByteBuffer buffer) {
+        this.randomAccessFile = randomAccessFile;
+        this.fileChannel = fileChannel;
+        this.buffer = buffer;
     }
 
-    public ConfigurationFile(File file, Configuration configuration) throws IOException, InterruptedException {
+    /**
+     * Creates or opens a configuration file with the given name.
+     * Method fails if the configuration file with different queue parameters already exists.
+     *
+     * @param file          The location of the configuration file.
+     * @param configuration The queue parameters.
+     * @return A new instance of {@link ConfigurationFile}.
+     * @throws IOException          If an I/O error occur.
+     * @throws InterruptedException If current operation was interrupted.
+     */
+    public static ConfigurationFile create(File file, Configuration configuration) throws IOException, InterruptedException {
 
-        MappedByteBufferLock lock = null;
+        ConfigurationFile configurationFile = null;
+        RandomAccessFile randomAccessFile = null;
+        FileChannel fileChannel = null;
+        MappedByteBuffer buffer;
 
         try {
+
+            // The createNewFile is an atomic operation. Only one thread can create new file.
+            // All other threads will attempt to read existing file.
+            if (!file.createNewFile()) {
+                configurationFile = open(file);
+                try (MappedByteBufferLock lock = configurationFile.acquireLock()) {
+                    Configuration existingConfiguration = configurationFile.getConfiguration();
+                    if (!existingConfiguration.equals(configuration)) {
+                        throw new IOException("A queue configuration file already exists and have different parameters.");
+                    }
+                }
+                return configurationFile;
+            }
+
             randomAccessFile = new RandomAccessFile(file, "rw");
             fileChannel = randomAccessFile.getChannel();
             buffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, FileSize);
 
-            lock = acquireLock();
+            configurationFile = new ConfigurationFile(randomAccessFile, fileChannel, buffer);
 
-            int fileMarker = buffer.getInt(FileMarkerOffset);
-            if (fileMarker != FileMarker) {
-                // assuming that this is a new file
+            try (MappedByteBufferLock lock = configurationFile.acquireLock()) {
                 buffer.putInt(FileMarkerOffset, FileMarker);
                 buffer.putLong(VisibilityTimeoutOffset, configuration.getVisibilityTimeout());
                 buffer.putLong(RetentionPeriodOffset, configuration.getRetentionPeriod());
                 buffer.putLong(NextMessageIdOffset, 0);
-            } else {
-                Configuration existingConfiguration = readConfiguration(buffer);
-                if (!existingConfiguration.equals(configuration)) {
-                    throw new IOException("A queue configuration file already exists and have different parameters.");
-                }
             }
+
+            // Flushing changes to disk, so that open method can check file structure with RandomAccessFile only.
+            buffer.force();
+
+        } catch (Throwable e) {
+            buffer = null;
+            FileUtils.closeOnError(e, configurationFile, fileChannel, randomAccessFile);
+            throw e;
+        }
+
+        return configurationFile;
+    }
+
+    /**
+     * Opens an existing configuration file.
+     *
+     * @param file The location of the file.
+     * @return A new instance of {@link ConfigurationFile}.
+     * @throws IOException          If an I/O error occur.
+     * @throws InterruptedException If current operation was interrupted.
+     */
+    public static ConfigurationFile open(File file) throws IOException, InterruptedException {
+
+        if (!file.exists()) {
+            throw new IOException("Configuration file '" + file.getAbsolutePath() + "' does not exist.");
+        }
+
+        RandomAccessFile randomAccessFile = null;
+        FileChannel fileChannel = null;
+        MappedByteBuffer buffer;
+
+        try {
+            randomAccessFile = new RandomAccessFile(file, "rw");
+
+            // check the marker first, to avoid corruption of unrelated file
+            if (!checkMarker(randomAccessFile)) {
+                // Maybe other thread did not finish creation of the file.
+                Thread.sleep(250);
+                // Reopen file to avoid reading cached data.
+                randomAccessFile.close();
+                randomAccessFile = new RandomAccessFile(file, "rw");
+            }
+            if (!checkMarker(randomAccessFile)) {
+                throw new IOException("The file '" + file.getAbsolutePath() + "' is not a configuration file.");
+            }
+
+            fileChannel = randomAccessFile.getChannel();
+            buffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, FileSize);
 
         } catch (Throwable e) {
             buffer = null;
             FileUtils.closeOnError(e, fileChannel, randomAccessFile);
             throw e;
-        } finally {
-            FileUtils.close(lock);
         }
+
+        return new ConfigurationFile(randomAccessFile, fileChannel, buffer);
     }
 
     @Override
@@ -98,21 +148,32 @@ public class ConfigurationFile implements Closeable {
         return new MappedByteBufferLock(buffer, LockOffsetOffset);
     }
 
-    //todo: this method requires lock
+    /**
+     * Returns the next message id and increments internal counter.
+     *
+     * @return The next message id.
+     */
     public long getNextMessageId() {
         long id = buffer.getLong(NextMessageIdOffset);
         buffer.putLong(NextMessageIdOffset, id + 1);
         return id;
     }
 
-    //todo: this method requires lock
+    /**
+     * Returns queue configuration parameters.
+     */
     public Configuration getConfiguration() {
-        return readConfiguration(buffer);
-    }
-
-    private static Configuration readConfiguration(MappedByteBuffer buffer) {
         long visibilityTimeout = buffer.getLong(VisibilityTimeoutOffset);
         long retentionPeriod = buffer.getLong(RetentionPeriodOffset);
         return new Configuration(visibilityTimeout, retentionPeriod);
+    }
+
+    private static boolean checkMarker(RandomAccessFile randomAccessFile) throws IOException {
+        if (randomAccessFile.length() < FileSize) {
+            return false;
+        }
+        randomAccessFile.seek(FileMarkerOffset);
+        int fileMarker = randomAccessFile.readInt();
+        return fileMarker == FileMarker;
     }
 }
