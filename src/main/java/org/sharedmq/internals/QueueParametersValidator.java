@@ -28,7 +28,7 @@ public class QueueParametersValidator {
     private static final long MaxPullTimeout = 20 * 1000L;
 
     /**
-     * Validates the parameters of the {@link SharedMessageQueue#SharedMessageQueue(File, long, long)} method.
+     * Validates the parameters of the {@link SharedMessageQueue#createQueue(File, long, long)} method.
      *
      * @param rootFolder        The folder where queue should be created.
      * @param visibilityTimeout The amount of time in milliseconds that a message received from a queue
@@ -63,7 +63,7 @@ public class QueueParametersValidator {
     }
 
     /**
-     * Validates the parameters of the {@link SharedMessageQueue#SharedMessageQueue(File)} method.
+     * Validates the parameters of the {@link SharedMessageQueue#openQueue(File)} method.
      *
      * @param rootFolder The folder where queue is located.
      * @throws IllegalArgumentException If parameters are invalid.

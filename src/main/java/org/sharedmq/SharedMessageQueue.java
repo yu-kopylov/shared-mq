@@ -13,9 +13,15 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /**
- * A message queue based on memory-mapped files.
+ * A message queue based on memory-mapped files.<br/>
+ * <br/>
+ * This class is thread-safe.<br/>
+ * The same message queue on disk can be safely accessed from different processes.<br/>
+ * The IpcChecker utility can be used to test the inter-process safety.
  */
 public class SharedMessageQueue implements Closeable {
+
+    //todo: replace IpcChecker utility
 
     private static final Logger logger = LoggerFactory.getLogger(SharedMessageQueue.class);
 
@@ -61,10 +67,40 @@ public class SharedMessageQueue implements Closeable {
      */
     private MappedByteArrayStorage messageContents;
 
+    private SharedMessageQueue(File rootFolder, ConfigurationFile configFile) throws IOException {
+
+        this.rootFolder = rootFolder;
+        this.configFile = configFile;
+
+        config = configFile.getConfiguration();
+
+        try {
+            headers = new MappedArrayList<>(
+                    new File(rootFolder, MessageHeadersFilename),
+                    MessageHeaderStorageAdapter.getInstance());
+
+            freeHeaders = new MappedArrayList<>(
+                    new File(rootFolder, FreeHeadersFilename),
+                    IntegerStorageAdapter.getInstance());
+
+            priorityQueue = new MappedHeap<PriorityQueueRecord>(
+                    new File(rootFolder, PriorityQueueFilename),
+                    PriorityQueueRecordStorageAdapter.getInstance(),
+                    PriorityQueueRecord::compareVisibility);
+
+            messageContents = new MappedByteArrayStorage(new File(rootFolder, MessageContentsFilename));
+
+            priorityQueue.register(this::updateHeapIndex);
+        } catch (Throwable e) {
+            FileUtils.closeOnError(e, headers, freeHeaders, priorityQueue, messageContents);
+            throw e;
+        }
+    }
+
     /**
-     * Creates an instance of a {@link SharedMessageQueue}.<br/>
-     * Creates all necessary files and folders for a queue in the given folder,
-     * including the root folder, if they do not exist.
+     * Creates or opens a message queue in the given folder.<br/>
+     * Method creates the root folder for the queue if it does not exist.<br/>
+     * Method fails if there is a queue with different parameters in the given folder.
      *
      * @param rootFolder        The folder where queue should be created.
      * @param visibilityTimeout The amount of time in milliseconds that a message received from a queue
@@ -78,7 +114,7 @@ public class SharedMessageQueue implements Closeable {
      *                                  or if folder already has a queue with different parameters.
      * @throws InterruptedException     If the current operation was interrupted.
      */
-    public SharedMessageQueue(
+    public static SharedMessageQueue createQueue(
             File rootFolder,
             long visibilityTimeout,
             long retentionPeriod
@@ -86,86 +122,48 @@ public class SharedMessageQueue implements Closeable {
 
         QueueParametersValidator.validateCreateQueue(rootFolder, visibilityTimeout, retentionPeriod);
 
-        this.rootFolder = rootFolder.getCanonicalFile();
+        rootFolder = rootFolder.getCanonicalFile();
 
         FileUtils.createFolder(rootFolder);
 
+        Configuration configuration = new Configuration(visibilityTimeout, retentionPeriod);
+        ConfigurationFile configFile = ConfigurationFile.create(new File(rootFolder, ConfigFilename), configuration);
+
         try {
-            config = new Configuration(visibilityTimeout, retentionPeriod);
-
-            configFile = ConfigurationFile.create(new File(rootFolder, ConfigFilename), config);
-
             try (MappedByteBufferLock lock = configFile.acquireLock()) {
-
-                headers = new MappedArrayList<>(
-                        new File(rootFolder, MessageHeadersFilename),
-                        MessageHeaderStorageAdapter.getInstance());
-
-                freeHeaders = new MappedArrayList<>(
-                        new File(rootFolder, FreeHeadersFilename),
-                        IntegerStorageAdapter.getInstance());
-
-                priorityQueue = new MappedHeap<PriorityQueueRecord>(
-                        new File(rootFolder, PriorityQueueFilename),
-                        PriorityQueueRecordStorageAdapter.getInstance(),
-                        PriorityQueueRecord::compareVisibility);
-
-                messageContents = new MappedByteArrayStorage(new File(rootFolder, MessageContentsFilename));
+                return new SharedMessageQueue(rootFolder, configFile);
             }
-
-            priorityQueue.register(this::updateHeapIndex);
         } catch (Throwable e) {
-            FileUtils.closeOnError(e, configFile, headers, freeHeaders, priorityQueue, messageContents);
+            FileUtils.closeOnError(e, configFile);
             throw e;
         }
     }
 
     /**
-     * Creates an instance of a {@link SharedMessageQueue}.<be/>
-     * Expects that a queue already exist in that folder.<br/>
-     * Reads the configuration from the existing queue.
+     * Opens an existing message queue in the given folder.
      *
      * @param rootFolder The folder where queue is located.
      * @throws IllegalArgumentException If parameters are invalid.
      * @throws IOException              If the queue does not exist in the given folder.
      * @throws InterruptedException     If the current operation was interrupted.
      */
-    public SharedMessageQueue(File rootFolder) throws IOException, InterruptedException {
+    public static SharedMessageQueue openQueue(File rootFolder) throws IOException, InterruptedException {
 
         QueueParametersValidator.validateOpenQueue(rootFolder);
 
-        this.rootFolder = rootFolder.getAbsoluteFile();
+        rootFolder = rootFolder.getCanonicalFile();
+
+        ConfigurationFile configFile = ConfigurationFile.open(new File(rootFolder, ConfigFilename));
 
         try {
-            configFile = ConfigurationFile.open(new File(rootFolder, ConfigFilename));
-
             try (MappedByteBufferLock lock = configFile.acquireLock()) {
-
-                headers = new MappedArrayList<>(
-                        new File(rootFolder, MessageHeadersFilename),
-                        MessageHeaderStorageAdapter.getInstance());
-
-                freeHeaders = new MappedArrayList<>(
-                        new File(rootFolder, FreeHeadersFilename),
-                        IntegerStorageAdapter.getInstance());
-
-                priorityQueue = new MappedHeap<>(
-                        new File(rootFolder, PriorityQueueFilename),
-                        PriorityQueueRecordStorageAdapter.getInstance(),
-                        PriorityQueueRecord::compareVisibility);
-
-                messageContents = new MappedByteArrayStorage(new File(rootFolder, MessageContentsFilename));
-
-                config = configFile.getConfiguration();
+                return new SharedMessageQueue(rootFolder, configFile);
             }
-
-            priorityQueue.register(this::updateHeapIndex);
         } catch (Throwable e) {
-            FileUtils.closeOnError(e, configFile, headers, freeHeaders, priorityQueue, messageContents);
+            FileUtils.closeOnError(e, configFile);
             throw e;
         }
     }
-
 
     @Override
     public void close() throws IOException {

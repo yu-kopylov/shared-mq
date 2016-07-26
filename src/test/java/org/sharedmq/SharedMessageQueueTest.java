@@ -2,10 +2,9 @@ package org.sharedmq;
 
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.sharedmq.internals.SharedQueueMessage;
 import org.sharedmq.internals.QueueParametersValidator;
 import org.sharedmq.internals.QueueParametersValidatorTest;
-import org.sharedmq.test.AdjustableSharedMessageQueue;
+import org.sharedmq.internals.SharedQueueMessage;
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
 
@@ -13,6 +12,8 @@ import java.io.File;
 import java.io.IOException;
 
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 import static org.sharedmq.test.TestUtils.assertThrows;
 
 @Category(CommonTests.class)
@@ -31,7 +32,8 @@ public class SharedMessageQueueTest {
     public void testPushPullDelete() throws IOException, InterruptedException {
         try (
                 TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testPushPullDelete");
-                AdjustableSharedMessageQueue queue = new AdjustableSharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)
+                SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                SharedMessageQueue queue = spy(realQueue)
         ) {
             // check prerequisite
             assertNull(queue.pull(ShortPullTimeout));
@@ -51,7 +53,7 @@ public class SharedMessageQueueTest {
             queue.delete(message1);
             queue.delete(message2);
 
-            queue.setTimeShift(VisibilityTimeout + 10);
+            setTimeShift(queue, VisibilityTimeout + 10);
 
             assertNull(queue.pull(ShortPullTimeout));
         }
@@ -64,7 +66,8 @@ public class SharedMessageQueueTest {
     public void testDelay() throws InterruptedException, IOException {
         try (
                 TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testDelay");
-                AdjustableSharedMessageQueue queue = new AdjustableSharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)
+                SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                SharedMessageQueue queue = spy(realQueue)
         ) {
             // check prerequisite
             assertNull(queue.pull(ShortPullTimeout));
@@ -81,12 +84,12 @@ public class SharedMessageQueueTest {
             assertEquals("Test Message 1", message1.asString());
             assertNull(message2);
 
-            queue.setTimeShift(9000);
+            setTimeShift(queue, 9000);
 
             Message message3 = queue.pull(ShortPullTimeout);
             assertNull(message3);
 
-            queue.setTimeShift(11000);
+            setTimeShift(queue, 11000);
 
             Message message4 = queue.pull(ShortPullTimeout);
             assertNotNull(message4);
@@ -103,8 +106,10 @@ public class SharedMessageQueueTest {
         try (
                 TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testDeleteAfterVisibilityTimeout");
                 //todo: define constants
-                AdjustableSharedMessageQueue queue1 = new AdjustableSharedMessageQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L);
-                AdjustableSharedMessageQueue queue2 = new AdjustableSharedMessageQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L)
+                SharedMessageQueue realQueue1 = SharedMessageQueue.createQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L);
+                SharedMessageQueue realQueue2 = SharedMessageQueue.createQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L);
+                SharedMessageQueue queue1 = spy(realQueue1);
+                SharedMessageQueue queue2 = spy(realQueue2)
         ) {
             // check prerequisite
             assertNull(queue1.pull(ShortPullTimeout));
@@ -121,8 +126,8 @@ public class SharedMessageQueueTest {
             assertEquals("Test Message 1", message1.asString());
             assertEquals("Test Message 2", message2.asString());
 
-            queue1.setTimeShift(6000);
-            queue2.setTimeShift(6000);
+            setTimeShift(queue1, 6000);
+            setTimeShift(queue2, 6000);
 
             // deleting the message after its visibility timeout is expired
             queue1.delete(message1);
@@ -133,8 +138,8 @@ public class SharedMessageQueueTest {
             assertEquals("Test Message 2", message3.asString());
             assertNull(message4);
 
-            queue1.setTimeShift(12000);
-            queue2.setTimeShift(12000);
+            setTimeShift(queue1, 12000);
+            setTimeShift(queue2, 12000);
 
             // deleting the message after its visibility timeout expired and it was received by another consumer
             queue1.delete(message2);
@@ -150,7 +155,7 @@ public class SharedMessageQueueTest {
     public void testDelayWithLongWait() throws InterruptedException, IOException {
         try (
                 TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testDelayWithLongWait");
-                AdjustableSharedMessageQueue queue = new AdjustableSharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)
+                SharedMessageQueue queue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)
         ) {
             // check prerequisite
             assertNull(queue.pull(ShortPullTimeout));
@@ -173,7 +178,8 @@ public class SharedMessageQueueTest {
     public void testVisibilityTimeout() throws InterruptedException, IOException {
         try (
                 TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testVisibilityTimeout");
-                AdjustableSharedMessageQueue queue = new AdjustableSharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)
+                SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                SharedMessageQueue queue = spy(realQueue)
         ) {
             // check prerequisite
             assertNull(queue.pull(ShortPullTimeout));
@@ -186,11 +192,11 @@ public class SharedMessageQueueTest {
             assertNull(queue.pull(ShortPullTimeout));
 
             // receive message is invisible after some time
-            queue.setTimeShift(VisibilityTimeout - 500);
+            setTimeShift(queue, VisibilityTimeout - 500);
             assertNull(queue.pull(ShortPullTimeout));
 
             // receive message becomes visible after VisibilityTimeout
-            queue.setTimeShift(VisibilityTimeout + 500);
+            setTimeShift(queue, VisibilityTimeout + 500);
             Message message2 = queue.pull(ShortPullTimeout);
             assertNotNull(message2);
             assertEquals(message1.asString(), message2.asString());
@@ -204,21 +210,22 @@ public class SharedMessageQueueTest {
     public void testRetentionPeriod() throws InterruptedException, IOException {
         try (
                 TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testRetentionPeriod");
-                AdjustableSharedMessageQueue service = new AdjustableSharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)
+                SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                SharedMessageQueue queue = spy(realQueue)
         ) {
             // check prerequisite
-            assertNull(service.pull(ShortPullTimeout));
+            assertNull(queue.pull(ShortPullTimeout));
 
-            service.push(0, "Test Message 1");
-            service.push(0, "Test Message 2");
+            queue.push(0, "Test Message 1");
+            queue.push(0, "Test Message 2");
 
             // after some time messages are still available
-            service.setTimeShift(RetentionPeriod - 500);
-            assertNotNull(service.pull(ShortPullTimeout));
+            setTimeShift(queue, RetentionPeriod - 500);
+            assertNotNull(queue.pull(ShortPullTimeout));
 
             // after RetentionPeriod messages are unavailable
-            service.setTimeShift(RetentionPeriod + 500);
-            assertNull(service.pull(ShortPullTimeout));
+            setTimeShift(queue, RetentionPeriod + 500);
+            assertNull(queue.pull(ShortPullTimeout));
         }
     }
 
@@ -230,9 +237,9 @@ public class SharedMessageQueueTest {
             File alternateRootPath = new File(subFolder, "..");
 
             try (
-                    SharedMessageQueue queue1 = new SharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
-                    SharedMessageQueue queue2 = new SharedMessageQueue(alternateRootPath, VisibilityTimeout, RetentionPeriod);
-                    SharedMessageQueue queue3 = new SharedMessageQueue(subFolder, VisibilityTimeout, RetentionPeriod)
+                    SharedMessageQueue queue1 = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                    SharedMessageQueue queue2 = SharedMessageQueue.createQueue(alternateRootPath, VisibilityTimeout, RetentionPeriod);
+                    SharedMessageQueue queue3 = SharedMessageQueue.createQueue(subFolder, VisibilityTimeout, RetentionPeriod)
             ) {
 
                 // push message to queue1, and receive it with queue2
@@ -285,9 +292,9 @@ public class SharedMessageQueueTest {
             assertThrows(
                     IllegalArgumentException.class,
                     "rootFolder parameter cannot be null",
-                    () -> new SharedMessageQueue(null, 0, 120));
+                    () -> SharedMessageQueue.createQueue(null, 0, 120));
 
-            try (SharedMessageQueue service = new SharedMessageQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
+            try (SharedMessageQueue service = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)) {
                 assertThrows(
                         IllegalArgumentException.class,
                         "delay in milliseconds must be between 0 and 900000",
@@ -308,7 +315,7 @@ public class SharedMessageQueueTest {
     public void testMessageIdGeneration() throws InterruptedException, IOException {
         try (
                 TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testMessageIdGeneration");
-                SharedMessageQueue queue = new SharedMessageQueue(testFolder.getRoot(), 5000, 60 * 1000)
+                SharedMessageQueue queue = SharedMessageQueue.createQueue(testFolder.getRoot(), 5000, 60 * 1000)
         ) {
             // we use some delay between messages to guarantee exact message order
             queue.push(0, "Test Message 1");
@@ -363,5 +370,16 @@ public class SharedMessageQueueTest {
             assertEquals(4, message5.getHeader().getMessageId());
             assertEquals(5, message6.getHeader().getMessageId());
         }
+    }
+
+    /**
+     * Overrides the {@link SharedMessageQueue#getTime()} method to return altered values.
+     *
+     * @param queueSpy  The Mockito spy of the {@link SharedMessageQueue}.
+     * @param timeShift The value that should be added to the
+     *                  original result of the {@link SharedMessageQueue#getTime()} method.
+     */
+    private void setTimeShift(SharedMessageQueue queueSpy, long timeShift) {
+        when(queueSpy.getTime()).thenAnswer(inv -> ((long) inv.callRealMethod()) + timeShift);
     }
 }
