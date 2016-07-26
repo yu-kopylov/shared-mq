@@ -1,12 +1,11 @@
 package org.sharedmq.primitives;
 
-import org.sharedmq.IpcChecker;
-import org.sharedmq.test.CommonTests;
-import org.sharedmq.test.TestFolder;
-import org.sharedmq.util.FileUtils;
 import com.google.common.base.Stopwatch;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.sharedmq.test.CommonTests;
+import org.sharedmq.test.TestFolder;
+import org.sharedmq.util.FileUtils;
 
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
@@ -20,7 +19,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * This test checks the behaviour of locks within one JVM.<br/>
- * For the inter-process testing the {@link IpcChecker} utility can be used.
+ * For the inter-process testing the {@link org.sharedmq.QueueTester} utility can be used.
  */
 @Category(CommonTests.class)
 public class MappedByteBufferLockTest {

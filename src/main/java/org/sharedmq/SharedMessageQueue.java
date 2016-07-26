@@ -17,11 +17,9 @@ import java.nio.charset.StandardCharsets;
  * <br/>
  * This class is thread-safe.<br/>
  * The same message queue on disk can be safely accessed from different processes.<br/>
- * The IpcChecker utility can be used to test the inter-process safety.
+ * The {@link QueueTester} utility can be used to test the inter-process safety.
  */
 public class SharedMessageQueue implements Closeable {
-
-    //todo: replace IpcChecker utility
 
     private static final Logger logger = LoggerFactory.getLogger(SharedMessageQueue.class);
 
@@ -224,6 +222,7 @@ public class SharedMessageQueue implements Closeable {
      * @param timeout Timeout for this operation in milliseconds.
      *                Value must be between 0 and 20 seconds.
      *                If timeout is equal to zero, then pull operation does not wait for new messages.
+     * @return The received message; or null if queue does not have visible messages.
      * @throws IllegalArgumentException If parameters are invalid.
      * @throws IOException              If an I/O error occurs.
      * @throws InterruptedException     If operation was interrupted.
