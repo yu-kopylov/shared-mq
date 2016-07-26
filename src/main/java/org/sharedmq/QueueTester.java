@@ -99,7 +99,7 @@ public class QueueTester {
             }
         }
 
-        log("Sender stopped.");
+        log("Sender stopped after sending " + sentMessages + " messages.");
     }
 
     private static String generateMessage() {
@@ -156,7 +156,7 @@ public class QueueTester {
             }
         }
 
-        log("Receiver stopped.");
+        log("Receiver stopped after receiving " + receivedMessages + " messages.");
     }
 
     private static boolean validateMessage(Message message) {
