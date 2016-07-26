@@ -19,12 +19,14 @@ public class QueueTester {
 
     private static final String SendMode = "-send";
     private static final String ReceiveMode = "-receive";
-    private static final long visibilityTimeout = 10000;
-    private static final long retentionPeriod = 30000;
+    private static final long visibilityTimeout = 15000;
+    private static final long retentionPeriod = 60000;
     private static final Random random = new Random();
     private static final int MaxDelay = 10;
-    private static int MaxMessageLength = 64;
-    private static String Alphabet = "01234567890!@#$%^&*()_+ abcdefghijklmnopqrstuvwxyz|ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static final int MaxMessageLength = 128;
+    // MaxMessagesCount depends on MaxMessageLength and the maximum content storage size which is 2GB.
+    private static final int MaxMessagesCount = 10000000;
+    private static final String Alphabet = "01234567890!@#$%^&*()_+ abcdefghijklmnopqrstuvwxyz|ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private static final long BatchSize = 1000000;
 
     private static volatile boolean stopped;
@@ -72,6 +74,12 @@ public class QueueTester {
 
 
         while (!stopped) {
+
+            while (!stopped && queue.size() >= MaxMessagesCount) {
+                log("The queue already has " + MaxMessagesCount + " messages. Waiting for some space to be freed.");
+                Thread.sleep(5000);
+            }
+
             //todo: check how delay affects performance
             queue.push(random.nextInt(MaxDelay + 1), generateMessage());
             sentMessages++;

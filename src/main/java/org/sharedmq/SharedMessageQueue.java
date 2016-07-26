@@ -284,6 +284,16 @@ public class SharedMessageQueue implements Closeable {
         }
     }
 
+    /**
+     * @return The total number of messages in the queue, including messages that are not yet visible.
+     * @throws InterruptedException If current operation was interrupted.
+     */
+    public int size() throws InterruptedException {
+        try (MappedByteBufferLock lock = configFile.acquireLock()) {
+            return priorityQueue.size();
+        }
+    }
+
     private void waitForMessage(long timeout) throws InterruptedException {
         if (timeout <= 0) {
             return;

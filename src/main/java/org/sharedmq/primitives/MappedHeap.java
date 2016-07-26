@@ -39,6 +39,10 @@ public class MappedHeap<TRecord> implements Closeable {
         list.clear();
     }
 
+    public int size() {
+        return list.size();
+    }
+
     public int add(TRecord record) throws IOException {
 
         if (record == null) {
