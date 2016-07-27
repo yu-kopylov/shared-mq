@@ -205,7 +205,7 @@ public class SharedMessageQueueTest {
 
             long elapsed = sw.elapsed(TimeUnit.MILLISECONDS);
 
-            assertTrue("Elapsed: " + elapsed, elapsed >= 100);
+            assertTrue("Elapsed: " + elapsed, elapsed >= 99);
         }
     }
 
