@@ -8,3 +8,8 @@
 # Text files
 *.txt text eol=lf
 README text eol=lf
+
+# Batch Files
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.sh text eol=lf
