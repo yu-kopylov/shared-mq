@@ -229,6 +229,34 @@ public class SharedMessageQueueTest {
         }
     }
 
+
+    /**
+     * Tests than queue supports retention period.
+     */
+    @Test
+    public void testCleanup() throws InterruptedException, IOException {
+        try (
+                TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testCleanup");
+                SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                SharedMessageQueue queue = spy(realQueue)
+        ) {
+            // check prerequisite
+            assertNull(queue.pull(ShortPullTimeout));
+
+            int messageCount = SharedMessageQueue.CleanupBatchSize * 2;
+
+            for (int i = 0; i < messageCount; i++) {
+                queue.push(0, "Test Message");
+            }
+
+            assertEquals(messageCount, queue.size());
+
+            setTimeShift(queue, RetentionPeriod + 10);
+
+            assertEquals(0, queue.size());
+        }
+    }
+
     @Test
     public void testRelativePaths() throws InterruptedException, IOException {
         try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testRelativePaths")) {

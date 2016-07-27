@@ -31,6 +31,13 @@ public class SharedMessageQueue implements Closeable {
     private static final String PriorityQueueFilename = "priority-queue.dat";
     private static final String MessageContentsFilename = "content.dat";
 
+    /**
+     * The number of messages deleted within one lock.<br/>
+     * It should be small enough for cleanup iteration not to exceed the maximum lock duration.<br/>
+     * It does not have to be too big, because normally only one message is processed within lock.
+     */
+    static final int CleanupBatchSize = 100;
+
     private final File rootFolder;
 
     /**
@@ -182,9 +189,11 @@ public class SharedMessageQueue implements Closeable {
 
         QueueParametersValidator.validatePush(delay, message);
 
-        try (MappedByteBufferLock lock = configFile.acquireLock()) {
+        final long now = getTime();
 
-            long now = getTime();
+        cleanupQueue();
+
+        try (MappedByteBufferLock lock = configFile.acquireLock()) {
 
             long messageId = configFile.getNextMessageId();
 
@@ -257,6 +266,8 @@ public class SharedMessageQueue implements Closeable {
      */
     public void delete(Message message) throws IOException, InterruptedException {
 
+        cleanupQueue();
+
         QueueParametersValidator.validateDelete(message);
 
         SharedQueueMessage queueMessage = (SharedQueueMessage) message;
@@ -288,9 +299,55 @@ public class SharedMessageQueue implements Closeable {
      * @return The total number of messages in the queue, including messages that are not yet visible.
      * @throws InterruptedException If current operation was interrupted.
      */
-    public int size() throws InterruptedException {
+    public int size() throws InterruptedException, IOException {
+
+        cleanupQueue();
+
         try (MappedByteBufferLock lock = configFile.acquireLock()) {
             return priorityQueue.size();
+        }
+    }
+
+    /**
+     * Removes expired messages from the queue.
+     */
+    private void cleanupQueue() throws InterruptedException, IOException {
+
+        final long start = getTime();
+
+        boolean shouldCleanup = true;
+        int deletedMessagesTotal = 0;
+
+        while (shouldCleanup) {
+
+            shouldCleanup = false;
+            int deletedMessages = 0;
+
+            try (MappedByteBufferLock lock = configFile.acquireLock()) {
+
+                long now = getTime();
+
+                MessageHeader header = peekNextMessageHeader();
+
+                while (header != null && isExpired(header, now)) {
+                    deleteMessage(header);
+                    deletedMessages++;
+                    if (deletedMessages >= CleanupBatchSize) {
+                        shouldCleanup = true;
+                        break;
+                    }
+                    header = peekNextMessageHeader();
+                }
+
+                deletedMessagesTotal += deletedMessages;
+            }
+        }
+
+        if (deletedMessagesTotal > 0) {
+            long timeSpent = getTime() - start;
+            logger.trace("The cleanupQueue method" +
+                    " removed " + deletedMessagesTotal + " messages" +
+                    " within " + timeSpent + "ms.");
         }
     }
 
@@ -349,16 +406,16 @@ public class SharedMessageQueue implements Closeable {
     }
 
     private SharedQueueMessage pollMessage() throws IOException, InterruptedException {
-        try (MappedByteBufferLock lock = configFile.acquireLock()) {
 
-            long now = getTime();
+        long now = getTime();
+
+        cleanupQueue();
+
+        try (MappedByteBufferLock lock = configFile.acquireLock()) {
 
             MessageHeader header = peekNextMessageHeader();
 
-            while (header != null && isExpired(header, now)) {
-                deleteMessage(header);
-                header = peekNextMessageHeader();
-            }
+            // we assume that the cleanupQueue method removed all expired messages
 
             if (header == null) {
                 return null;
