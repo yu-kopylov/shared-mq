@@ -1,5 +1,6 @@
 package org.sharedmq;
 
+import com.google.common.base.Stopwatch;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.sharedmq.internals.QueueParametersValidator;
@@ -9,7 +10,9 @@ import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.spy;
@@ -53,9 +56,96 @@ public class SharedMessageQueueTest {
             queue.delete(message1);
             queue.delete(message2);
 
-            setTimeShift(queue, VisibilityTimeout + 10);
+            assertEquals(0, queue.size());
+        }
+    }
 
-            assertNull(queue.pull(ShortPullTimeout));
+    /**
+     * Tests that queue correctly handles delete of the message from reused message slot.
+     */
+    @Test
+    public void testDeleteReused() throws IOException, InterruptedException {
+        try (
+                TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testDeleteReused");
+                SharedMessageQueue queue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+        ) {
+            // check prerequisite
+            assertEquals(0, queue.size());
+
+            queue.push(0, "Test Message 1");
+            SharedQueueMessage message1 = (SharedQueueMessage) queue.pull(LongPullTimeout);
+            assertNotNull(message1);
+            assertEquals("Test Message 1", message1.asString());
+
+            queue.delete(message1);
+
+            queue.push(0, "Test Message 2");
+            SharedQueueMessage message2 = (SharedQueueMessage) queue.pull(LongPullTimeout);
+            assertNotNull(message2);
+            assertEquals("Test Message 2", message2.asString());
+
+            // second message should reuse same message number, but have different id
+            assertEquals(message1.getHeader().getMessageNumber(), message2.getHeader().getMessageNumber());
+            assertNotEquals(message1.getHeader().getMessageId(), message2.getHeader().getMessageId());
+
+            // deletion of the old message should not affect the queue
+            queue.delete(message1);
+            assertEquals(1, queue.size());
+
+            // but the new message is deleted correctly
+            queue.delete(message2);
+            assertEquals(0, queue.size());
+        }
+    }
+
+    /**
+     * Tests that an opened queue has same properties as a created queue.
+     */
+    @Test
+    public void testReopenQueue() throws IOException, InterruptedException {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testReopenQueue")) {
+
+            File queueFolder = testFolder.getRoot();
+
+            try (SharedMessageQueue queue = SharedMessageQueue.createQueue(queueFolder, VisibilityTimeout, RetentionPeriod)) {
+                // check prerequisite
+                assertEquals(0, queue.size());
+
+                queue.push(0, "Test Message 1");
+                queue.push(0, "Test Message 2");
+            }
+
+            try (
+                    SharedMessageQueue realQueue = SharedMessageQueue.openQueue(queueFolder);
+                    SharedMessageQueue queue = spy(realQueue)
+            ) {
+                Message message1 = queue.pull(LongPullTimeout);
+                Message message2 = queue.pull(LongPullTimeout);
+
+                assertNotNull(message1);
+                assertNotNull(message2);
+
+                assertEquals("Test Message 1", message1.asString());
+                assertEquals("Test Message 2", message2.asString());
+
+                setTimeShift(queue, VisibilityTimeout + 10);
+
+                // If parameters was read correctly, then messages should become visible now.
+                message1 = queue.pull(LongPullTimeout);
+                message2 = queue.pull(LongPullTimeout);
+
+                assertNotNull(message1);
+                assertNotNull(message2);
+
+                assertEquals("Test Message 1", message1.asString());
+                assertEquals("Test Message 2", message2.asString());
+
+                setTimeShift(queue, RetentionPeriod + 20);
+
+                // If parameters was read correctly, then messages should become expired now.
+                assertNull(queue.pull(ShortPullTimeout));
+                assertEquals(0, queue.size());
+            }
         }
     }
 
@@ -63,9 +153,9 @@ public class SharedMessageQueueTest {
      * Tests that queue service respects message delay.
      */
     @Test
-    public void testDelay() throws InterruptedException, IOException {
+    public void testPushDelay() throws InterruptedException, IOException {
         try (
-                TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testDelay");
+                TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testPushDelay");
                 SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
                 SharedMessageQueue queue = spy(realQueue)
         ) {
@@ -94,6 +184,28 @@ public class SharedMessageQueueTest {
             Message message4 = queue.pull(ShortPullTimeout);
             assertNotNull(message4);
             assertEquals("Test Message 2", message4.asString());
+        }
+    }
+
+    /**
+     * Tests that pull waits for a message when queue is empty.
+     */
+    @Test
+    public void testPullDelay() throws IOException, InterruptedException {
+        try (
+                TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testPullDelay");
+                SharedMessageQueue queue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+        ) {
+            // check prerequisite
+            assertEquals(0, queue.size());
+
+            Stopwatch sw = Stopwatch.createStarted();
+
+            assertNull(queue.pull(100));
+
+            long elapsed = sw.elapsed(TimeUnit.MILLISECONDS);
+
+            assertTrue("Elapsed: " + elapsed, elapsed >= 100);
         }
     }
 
@@ -297,6 +409,68 @@ public class SharedMessageQueueTest {
                 queue1.delete(message1);
                 queue2.delete(message2);
             }
+        }
+    }
+
+    /**
+     * Tests that queue throws reasonable exceptions when the path to queue folder is wrong.
+     */
+    @Test
+    public void testWrongPath() throws InterruptedException, IOException {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testWrongPath")) {
+
+            File file = testFolder.getFile("somefile");
+            assertTrue(file.createNewFile());
+
+            assertThrows(
+                    IOException.class,
+                    "not a directory",
+                    () -> SharedMessageQueue.createQueue(file, VisibilityTimeout, RetentionPeriod));
+
+            assertThrows(
+                    IOException.class,
+                    "does not exist",
+                    () -> SharedMessageQueue.openQueue(file));
+
+            // Sanity check: file is still there
+            assertTrue(file.exists());
+            assertTrue(file.isFile());
+        }
+    }
+
+    /**
+     * Tests that queue throws reasonable exceptions when folder already has files
+     * with same name as files required for queue to work.
+     */
+    @Test
+    public void testCorruptedFileStructure() throws InterruptedException, IOException {
+        try (TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testWrongPath")) {
+
+            File queueFolder = testFolder.getFile("queue");
+            File priorityQueueFile = new File(queueFolder, SharedMessageQueue.PriorityQueueFilename);
+            int fakeFileLength = 2;
+
+            assertTrue(queueFolder.mkdir());
+            try (FileOutputStream stream = new FileOutputStream(priorityQueueFile)) {
+                stream.write(new byte[fakeFileLength]);
+            }
+
+            assertThrows(
+                    IOException.class,
+                    "file is too short to be a MappedArrayList file",
+                    () -> SharedMessageQueue.createQueue(queueFolder, VisibilityTimeout, RetentionPeriod));
+
+            assertThrows(
+                    IOException.class,
+                    "file is too short to be a MappedArrayList file",
+                    () -> SharedMessageQueue.openQueue(queueFolder));
+
+            // Sanity check: files are still there and not modified
+            assertTrue(queueFolder.exists());
+            assertTrue(queueFolder.isDirectory());
+            assertTrue(priorityQueueFile.exists());
+            assertTrue(priorityQueueFile.isFile());
+            assertEquals(fakeFileLength, priorityQueueFile.length());
         }
     }
 

@@ -28,10 +28,6 @@ public class SharedQueueMessage implements Message {
         return header;
     }
 
-    public String getBody() {
-        return body;
-    }
-
     @Override
     public String asString() {
         return body;

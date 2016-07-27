@@ -28,7 +28,7 @@ public class SharedMessageQueue implements Closeable {
     private static final String ConfigFilename = "config.dat";
     private static final String MessageHeadersFilename = "headers.dat";
     private static final String FreeHeadersFilename = "free-headers.dat";
-    private static final String PriorityQueueFilename = "priority-queue.dat";
+    static final String PriorityQueueFilename = "priority-queue.dat";
     private static final String MessageContentsFilename = "content.dat";
 
     /**

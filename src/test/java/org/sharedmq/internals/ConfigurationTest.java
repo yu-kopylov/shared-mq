@@ -18,6 +18,7 @@ public class ConfigurationTest {
         Configuration config4 = new Configuration(100, 201);
 
         assertEquals(config1, config2);
+        assertEquals(config1.hashCode(), config2.hashCode());
         assertNotEquals(config1, config3);
         assertNotEquals(config1, config4);
     }
