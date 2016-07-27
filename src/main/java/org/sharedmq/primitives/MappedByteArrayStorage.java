@@ -114,7 +114,7 @@ public class MappedByteArrayStorage implements Closeable {
 
     public byte[] get(MappedByteArrayStorageKey key) throws IOException {
         ensureBufferCapacity(getSegmentCount());
-        checkKeySegment(key);
+        checkSegmentKey(key);
 
         int segmentNumber = key.getSegmentNumber();
         MappedByteArrayStorageSegment segment = MappedByteArrayStorageSegment.read(
@@ -128,7 +128,7 @@ public class MappedByteArrayStorage implements Closeable {
 
     public boolean delete(MappedByteArrayStorageKey key) throws IOException {
         ensureBufferCapacity(getSegmentCount());
-        checkKeySegment(key);
+        checkSegmentKey(key);
 
         int segmentNumber = key.getSegmentNumber();
         MappedByteArrayStorageSegment segment = MappedByteArrayStorageSegment.read(
@@ -181,7 +181,7 @@ public class MappedByteArrayStorage implements Closeable {
         }
     }
 
-    private void checkKeySegment(MappedByteArrayStorageKey key) {
+    private void checkSegmentKey(MappedByteArrayStorageKey key) {
         int segmentNumber = key.getSegmentNumber();
         if (segmentNumber < 0 || segmentNumber >= getSegmentCount()) {
             // Currently the MappedByteArrayStorage never removes unused segments.
