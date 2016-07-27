@@ -2,7 +2,7 @@ package org.sharedmq.internals;
 
 import org.sharedmq.SharedMessageQueue;
 import org.sharedmq.primitives.MappedByteBufferLock;
-import org.sharedmq.util.FileUtils;
+import org.sharedmq.util.IOUtils;
 
 import java.io.*;
 import java.nio.MappedByteBuffer;
@@ -86,7 +86,7 @@ public class ConfigurationFile implements Closeable {
 
         } catch (Throwable e) {
             buffer = null;
-            FileUtils.closeOnError(e, configurationFile, fileChannel, randomAccessFile);
+            IOUtils.closeOnError(e, configurationFile, fileChannel, randomAccessFile);
             throw e;
         }
 
@@ -131,7 +131,7 @@ public class ConfigurationFile implements Closeable {
 
         } catch (Throwable e) {
             buffer = null;
-            FileUtils.closeOnError(e, fileChannel, randomAccessFile);
+            IOUtils.closeOnError(e, fileChannel, randomAccessFile);
             throw e;
         }
 
@@ -141,7 +141,7 @@ public class ConfigurationFile implements Closeable {
     @Override
     public void close() throws IOException {
         buffer = null;
-        FileUtils.close(fileChannel, randomAccessFile);
+        IOUtils.close(fileChannel, randomAccessFile);
     }
 
     public MappedByteBufferLock acquireLock() throws InterruptedException {

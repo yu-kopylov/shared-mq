@@ -1,7 +1,6 @@
 package org.sharedmq.primitives;
 
-import org.sharedmq.primitives.StorageAdapter;
-import org.sharedmq.util.FileUtils;
+import org.sharedmq.util.IOUtils;
 
 import java.io.Closeable;
 import java.io.File;
@@ -54,7 +53,7 @@ public class MappedArrayList<TRecord> implements Closeable {
 
         } catch (Throwable e) {
             buffer = null;
-            FileUtils.closeOnError(e, fileChannel, randomAccessFile);
+            IOUtils.closeOnError(e, fileChannel, randomAccessFile);
             throw e;
         }
     }
@@ -62,7 +61,7 @@ public class MappedArrayList<TRecord> implements Closeable {
     @Override
     public void close() throws IOException {
         buffer = null;
-        FileUtils.close(fileChannel, randomAccessFile);
+        IOUtils.close(fileChannel, randomAccessFile);
     }
 
     private static MappedByteBuffer createFile(FileChannel fileChannel, int recordSize) throws IOException {

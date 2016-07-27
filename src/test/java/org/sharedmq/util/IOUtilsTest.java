@@ -13,17 +13,17 @@ import static org.sharedmq.test.TestUtils.assertThrows;
 import static org.junit.Assert.*;
 
 @Category(CommonTests.class)
-public class FileUtilsTest {
+public class IOUtilsTest {
     @Test
     public void testDelete() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("FileUtilsTest", "testDelete")) {
+        try (TestFolder testFolder = new TestFolder("IOUtilsTest", "testDelete")) {
             File file = testFolder.getFile("test.dat");
 
             // nothing should happen if the file does not exist
-            FileUtils.delete(file);
+            IOUtils.delete(file);
 
             assertTrue(file.createNewFile());
-            FileUtils.delete(file);
+            IOUtils.delete(file);
 
             assertFalse(file.exists());
 
@@ -48,7 +48,7 @@ public class FileUtilsTest {
             fileLocked.await();
 
             long deleteStarted = System.currentTimeMillis();
-            FileUtils.delete(file);
+            IOUtils.delete(file);
             long deleteTime = System.currentTimeMillis() - deleteStarted;
 
             assertFalse(file.exists());
@@ -59,18 +59,18 @@ public class FileUtilsTest {
 
     @Test
     public void testCreateFolder() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("FileUtilsTest", "testCreateFolder")) {
+        try (TestFolder testFolder = new TestFolder("IOUtilsTest", "testCreateFolder")) {
 
             File folder = testFolder.getFile("folder");
 
-            FileUtils.createFolder(folder);
+            IOUtils.createFolder(folder);
             assertTrue(folder.exists());
             assertTrue(folder.isDirectory());
 
             File fileInFolder = new File(folder, "test.dat");
             assertTrue(fileInFolder.createNewFile());
 
-            FileUtils.createFolder(folder);
+            IOUtils.createFolder(folder);
             assertTrue(folder.exists());
             assertTrue(folder.isDirectory());
             assertTrue(fileInFolder.exists());
@@ -78,7 +78,7 @@ public class FileUtilsTest {
             assertThrows(
                     IOException.class,
                     "is not a directory",
-                    () -> FileUtils.createFolder(fileInFolder));
+                    () -> IOUtils.createFolder(fileInFolder));
 
             assertTrue(fileInFolder.exists());
             assertFalse(fileInFolder.isDirectory());
@@ -87,14 +87,14 @@ public class FileUtilsTest {
 
     @Test
     public void testDeleteTree() throws IOException, InterruptedException {
-        try (TestFolder testFolder = new TestFolder("FileUtilsTest", "testDeleteTree")) {
+        try (TestFolder testFolder = new TestFolder("IOUtilsTest", "testDeleteTree")) {
 
             File folder = testFolder.getFile("folder");
 
             assertThrows(
                     IOException.class,
                     "folder",
-                    () -> FileUtils.deleteTree(folder)
+                    () -> IOUtils.deleteTree(folder)
             );
 
             File subfolder = new File(folder, "subfolder");
@@ -104,7 +104,7 @@ public class FileUtilsTest {
             assertTrue(subfolder.mkdir());
             assertTrue(fileInSubfolder.createNewFile());
 
-            FileUtils.deleteTree(folder);
+            IOUtils.deleteTree(folder);
 
             assertFalse(folder.exists());
             assertFalse(subfolder.exists());
@@ -115,16 +115,16 @@ public class FileUtilsTest {
     @Test
     public void testClose() throws IOException, InterruptedException {
 
-        FileUtils.close();
-        FileUtils.close((Closeable) null);
-        FileUtils.close((Closeable) null, (Closeable) null);
+        IOUtils.close();
+        IOUtils.close((Closeable) null);
+        IOUtils.close((Closeable) null, (Closeable) null);
 
-        FileUtils.close(Arrays.asList());
-        FileUtils.close(Arrays.asList((Closeable) null));
-        FileUtils.close(Arrays.asList((Closeable) null, (Closeable) null));
+        IOUtils.close(Arrays.asList());
+        IOUtils.close(Arrays.asList((Closeable) null));
+        IOUtils.close(Arrays.asList((Closeable) null, (Closeable) null));
 
         try {
-            FileUtils.close(
+            IOUtils.close(
                     () -> {
                         throw new IOException("Exception #1");
                     },
@@ -141,7 +141,7 @@ public class FileUtilsTest {
         }
 
         IllegalArgumentException mainException = new IllegalArgumentException("Main Exception");
-        FileUtils.closeOnError(
+        IOUtils.closeOnError(
                 mainException,
                 () -> {
                     throw new IOException("Exception #1");

@@ -1,6 +1,6 @@
 package org.sharedmq.test;
 
-import org.sharedmq.util.FileUtils;
+import org.sharedmq.util.IOUtils;
 
 import java.io.Closeable;
 import java.io.File;
@@ -56,6 +56,6 @@ public class TestFolder implements Closeable {
         // remain valid until the buffer itself is garbage-collected.
         System.gc();
 
-        FileUtils.deleteTree(root);
+        IOUtils.deleteTree(root);
     }
 }

@@ -3,11 +3,7 @@ package org.sharedmq.primitives;
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
 import org.sharedmq.test.TestUtils;
-import org.sharedmq.primitives.MappedByteArrayStorageIndexRecord;
-import org.sharedmq.primitives.MappedByteArrayStorageKey;
-import org.sharedmq.primitives.MappedByteArrayStorageSegment;
-import org.sharedmq.primitives.MappedByteArrayStorageSegmentHeader;
-import org.sharedmq.util.FileUtils;
+import org.sharedmq.util.IOUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -31,7 +27,7 @@ public class MappedByteArrayStorageSegmentTest {
                     - MappedByteArrayStorageSegmentHeader.ByteSize
                     - MappedByteArrayStorageSegment.IndexRecordSize;
 
-            MappedByteBuffer buffer = FileUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
+            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
 
             // testing the segment with the minimum and maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {
@@ -84,7 +80,7 @@ public class MappedByteArrayStorageSegmentTest {
             final int segmentSize = 1000;
             final int segmentNumber = 1234;
 
-            MappedByteBuffer buffer = FileUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
+            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
 
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset <= 1; segmentOffset++) {
@@ -161,7 +157,7 @@ public class MappedByteArrayStorageSegmentTest {
             final int segmentSize = 10000;
             final int segmentNumber = 1234;
 
-            MappedByteBuffer buffer = FileUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
+            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
 
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {
@@ -281,7 +277,7 @@ public class MappedByteArrayStorageSegmentTest {
             final int segmentSize = 1000;
             final int segmentNumber = 1234;
 
-            MappedByteBuffer buffer = FileUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
+            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
 
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {
@@ -323,7 +319,7 @@ public class MappedByteArrayStorageSegmentTest {
             final int segmentSize = 1000;
             final int segmentNumber = 1234;
 
-            MappedByteBuffer buffer = FileUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
+            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
 
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {

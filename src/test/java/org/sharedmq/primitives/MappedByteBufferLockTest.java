@@ -5,7 +5,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.sharedmq.test.CommonTests;
 import org.sharedmq.test.TestFolder;
-import org.sharedmq.util.FileUtils;
+import org.sharedmq.util.IOUtils;
 
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
@@ -28,7 +28,7 @@ public class MappedByteBufferLockTest {
     public void testSmoke() throws IOException, InterruptedException {
         try (TestFolder testFolder = new TestFolder("MappedByteBufferLockTest", "testSmoke")) {
 
-            MappedByteBuffer buffer = FileUtils.createMappedByteBuffer(
+            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(
                     testFolder.getFile("test.dat"),
                     MappedByteBufferLock.LockSize + 1);
 
@@ -70,7 +70,7 @@ public class MappedByteBufferLockTest {
     public void testBlocking() throws IOException, InterruptedException {
         try (TestFolder testFolder = new TestFolder("MappedByteBufferLockTest", "testSmoke")) {
 
-            MappedByteBuffer buffer = FileUtils.createMappedByteBuffer(
+            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(
                     testFolder.getFile("test.dat"),
                     MappedByteBufferLock.LockSize + 1);
 

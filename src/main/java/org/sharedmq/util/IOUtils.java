@@ -14,9 +14,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class FileUtils {
+public class IOUtils {
 
-    private static final Logger logger = LoggerFactory.getLogger(FileUtils.class);
+    private static final Logger logger = LoggerFactory.getLogger(IOUtils.class);
 
     /**
      * Deletes the given file or directory.<br/>

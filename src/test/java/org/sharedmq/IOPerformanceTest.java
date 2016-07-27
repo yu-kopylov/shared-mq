@@ -2,7 +2,7 @@ package org.sharedmq;
 
 import org.sharedmq.test.PerformanceTests;
 import org.sharedmq.test.TestFolder;
-import org.sharedmq.util.FileUtils;
+import org.sharedmq.util.IOUtils;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import org.junit.Test;
@@ -297,8 +297,8 @@ public class IOPerformanceTest {
 
         try (TestFolder testFolder = new TestFolder("IOPerformanceTest", "testMappedByteBufferSequential")) {
 
-            MappedByteBuffer buffer1 = FileUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), fileSize);
-            MappedByteBuffer buffer2 = FileUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), fileSize);
+            MappedByteBuffer buffer1 = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), fileSize);
+            MappedByteBuffer buffer2 = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), fileSize);
 
             Stopwatch sequentialWriteTimer = Stopwatch.createStarted();
             for (int i = 0; i < entriesCount; i++) {
@@ -331,8 +331,8 @@ public class IOPerformanceTest {
 
         try (TestFolder testFolder = new TestFolder("IOPerformanceTest", "testMappedByteBufferRandom")) {
 
-            MappedByteBuffer buffer1 = FileUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), fileSize);
-            MappedByteBuffer buffer2 = FileUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), fileSize);
+            MappedByteBuffer buffer1 = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), fileSize);
+            MappedByteBuffer buffer2 = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), fileSize);
 
             try {
 

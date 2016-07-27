@@ -2,7 +2,7 @@ package org.sharedmq;
 
 import org.sharedmq.internals.*;
 import org.sharedmq.primitives.*;
-import org.sharedmq.util.FileUtils;
+import org.sharedmq.util.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,7 +97,7 @@ public class SharedMessageQueue implements Closeable {
 
             priorityQueue.register(this::updateHeapIndex);
         } catch (Throwable e) {
-            FileUtils.closeOnError(e, headers, freeHeaders, priorityQueue, messageContents);
+            IOUtils.closeOnError(e, headers, freeHeaders, priorityQueue, messageContents);
             throw e;
         }
     }
@@ -129,7 +129,7 @@ public class SharedMessageQueue implements Closeable {
 
         rootFolder = rootFolder.getCanonicalFile();
 
-        FileUtils.createFolder(rootFolder);
+        IOUtils.createFolder(rootFolder);
 
         Configuration configuration = new Configuration(visibilityTimeout, retentionPeriod);
         ConfigurationFile configFile = ConfigurationFile.create(new File(rootFolder, ConfigFilename), configuration);
@@ -139,7 +139,7 @@ public class SharedMessageQueue implements Closeable {
                 return new SharedMessageQueue(rootFolder, configFile);
             }
         } catch (Throwable e) {
-            FileUtils.closeOnError(e, configFile);
+            IOUtils.closeOnError(e, configFile);
             throw e;
         }
     }
@@ -165,14 +165,14 @@ public class SharedMessageQueue implements Closeable {
                 return new SharedMessageQueue(rootFolder, configFile);
             }
         } catch (Throwable e) {
-            FileUtils.closeOnError(e, configFile);
+            IOUtils.closeOnError(e, configFile);
             throw e;
         }
     }
 
     @Override
     public void close() throws IOException {
-        FileUtils.close(configFile, headers, freeHeaders, messageContents, priorityQueue);
+        IOUtils.close(configFile, headers, freeHeaders, messageContents, priorityQueue);
     }
 
     /**
