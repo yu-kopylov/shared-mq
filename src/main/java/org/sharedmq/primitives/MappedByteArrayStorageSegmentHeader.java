@@ -8,9 +8,10 @@ import java.nio.ByteBuffer;
  */
 public class MappedByteArrayStorageSegmentHeader {
 
-    public static final int ByteSize = 7 * 4;
-
     private static final int DataMarker = 0x5345474D;
+
+    private static final StorageAdapter<MappedByteArrayStorageSegmentHeader> storageAdapter
+            = new SegmentHeaderStorageAdapter();
 
     /**
      * The number of index records.
@@ -94,26 +95,41 @@ public class MappedByteArrayStorageSegmentHeader {
         this.releasedSpace = releasedSpace;
     }
 
-    public void writeTo(ByteBuffer buffer) {
-        buffer.putInt(DataMarker);
-        buffer.putInt(indexRecordCount);
-        buffer.putInt(freeRecordCount);
-        buffer.putInt(lastNonFreeRecord);
-        buffer.putInt(unallocatedSpace);
-        buffer.putInt(allocatedSpace);
-        buffer.putInt(releasedSpace);
+    public static StorageAdapter<MappedByteArrayStorageSegmentHeader> getStorageAdapter() {
+        return storageAdapter;
     }
 
-    public void readFrom(ByteBuffer buffer) throws IOException {
-        int dataMarker = buffer.getInt();
-        if (dataMarker != DataMarker) {
-            throw new IOException("Invalid MappedByteArrayStorageSegmentHeader.");
+    private static class SegmentHeaderStorageAdapter implements StorageAdapter<MappedByteArrayStorageSegmentHeader> {
+        @Override
+        public int getRecordSize() {
+            return 7 * 4;
         }
-        indexRecordCount = buffer.getInt();
-        freeRecordCount = buffer.getInt();
-        lastNonFreeRecord = buffer.getInt();
-        unallocatedSpace = buffer.getInt();
-        allocatedSpace = buffer.getInt();
-        releasedSpace = buffer.getInt();
+
+        @Override
+        public void store(ByteBuffer buffer, MappedByteArrayStorageSegmentHeader header) {
+            buffer.putInt(DataMarker);
+            buffer.putInt(header.getIndexRecordCount());
+            buffer.putInt(header.getFreeRecordCount());
+            buffer.putInt(header.getLastNonFreeRecord());
+            buffer.putInt(header.getUnallocatedSpace());
+            buffer.putInt(header.getAllocatedSpace());
+            buffer.putInt(header.getReleasedSpace());
+        }
+
+        @Override
+        public MappedByteArrayStorageSegmentHeader load(ByteBuffer buffer) throws IOException {
+            int dataMarker = buffer.getInt();
+            if (dataMarker != DataMarker) {
+                throw new IOException("Invalid MappedByteArrayStorageSegmentHeader.");
+            }
+            MappedByteArrayStorageSegmentHeader header = new MappedByteArrayStorageSegmentHeader();
+            header.setIndexRecordCount(buffer.getInt());
+            header.setFreeRecordCount(buffer.getInt());
+            header.setLastNonFreeRecord(buffer.getInt());
+            header.setUnallocatedSpace(buffer.getInt());
+            header.setAllocatedSpace(buffer.getInt());
+            header.setReleasedSpace(buffer.getInt());
+            return header;
+        }
     }
 }

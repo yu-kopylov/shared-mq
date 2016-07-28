@@ -1,5 +1,6 @@
 package org.sharedmq.primitives;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
@@ -25,5 +26,5 @@ public interface StorageAdapter<TRecord> {
      * @param buffer The buffer to read from.
      * @return The record at the given buffer position.
      */
-    TRecord load(ByteBuffer buffer);
+    TRecord load(ByteBuffer buffer) throws IOException;
 }

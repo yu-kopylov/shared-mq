@@ -47,16 +47,42 @@ public class MemoryMappedFile implements Closeable {
         return buffer.getInt(offset);
     }
 
-    public void putInt(int offset, int value) {
-        buffer.putInt(offset, value);
+    public long getLong(int offset) {
+        return buffer.getLong(offset);
     }
 
-    public <TRecord> TRecord get(int offset, StorageAdapter<TRecord> adapter) {
+    //todo: test
+    public byte[] getBytes(int fileOffset, int dataLength) {
+        byte[] bytes = new byte[dataLength];
+        getBytes(fileOffset, bytes, 0, dataLength);
+        return bytes;
+    }
+
+    //todo: test
+    public void getBytes(int fileOffset, byte[] array, int arrayOffset, int dataLength) {
+        buffer.position(fileOffset);
+        buffer.get(array, arrayOffset, dataLength);
+    }
+
+    public <TRecord> TRecord get(int offset, StorageAdapter<TRecord> adapter) throws IOException {
         buffer.position(offset);
         return adapter.load(buffer);
     }
 
-    public <TRecord> void put(int offset, StorageAdapter<TRecord> adapter, TRecord value) {
+    public void putInt(int offset, int value) {
+        buffer.putInt(offset, value);
+    }
+
+    public void putLong(int offset, long value) {
+        buffer.putLong(offset, value);
+    }
+
+    public void putBytes(int offset, byte[] array) {
+        buffer.position(offset);
+        buffer.put(array, 0, array.length);
+    }
+
+    public <TRecord> void put(int offset, TRecord value, StorageAdapter<TRecord> adapter) {
         buffer.position(offset);
         adapter.store(buffer, value);
     }

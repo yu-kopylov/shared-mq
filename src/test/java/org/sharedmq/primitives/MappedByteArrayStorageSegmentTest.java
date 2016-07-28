@@ -19,20 +19,21 @@ public class MappedByteArrayStorageSegmentTest {
 
     @Test
     public void testMaxSizeArray() throws IOException {
-        try (TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testMaxSizeArray")) {
 
-            final int segmentSize = 1000;
-            final int segmentNumber = 1234;
-            int maxRecordSize = segmentSize
-                    - MappedByteArrayStorageSegmentHeader.ByteSize
-                    - MappedByteArrayStorageSegment.IndexRecordSize;
+        final int segmentSize = 1000;
+        final int segmentNumber = 1234;
+        final int maxRecordSize = segmentSize
+                - MappedByteArrayStorageSegmentHeader.getStorageAdapter().getRecordSize()
+                - MappedByteArrayStorageSegment.IndexRecordSize;
 
-            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
-
+        try (
+                TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testMaxSizeArray");
+                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), segmentSize + 1)
+        ) {
             // testing the segment with the minimum and maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {
                 MappedByteArrayStorageSegment segment
-                        = MappedByteArrayStorageSegment.create(buffer, segmentNumber, segmentOffset, segmentSize);
+                        = MappedByteArrayStorageSegment.create(mappedFile, segmentNumber, segmentOffset, segmentSize);
 
                 // repeat test 2 times to check that segment is reusable
                 for (int i = 0; i < 2; i++) {
@@ -64,28 +65,24 @@ public class MappedByteArrayStorageSegmentTest {
                     assertFalse(segment.deleteArray(key));
                     assertNull(segment.getArray(key));
                 }
-
             }
-
-            // A mapped byte buffer and the file mapping that it represents
-            // remain valid until the buffer itself is garbage-collected.
-            buffer = null;
         }
     }
 
     @Test
     public void testGarbageCollection() throws IOException {
-        try (TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testGarbageCollection")) {
 
-            final int segmentSize = 1000;
-            final int segmentNumber = 1234;
+        final int segmentSize = 1000;
+        final int segmentNumber = 1234;
 
-            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
-
+        try (
+                TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testGarbageCollection");
+                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), segmentSize + 1)
+        ) {
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset <= 1; segmentOffset++) {
                 MappedByteArrayStorageSegment segment
-                        = MappedByteArrayStorageSegment.create(buffer, segmentNumber, segmentOffset, segmentSize);
+                        = MappedByteArrayStorageSegment.create(mappedFile, segmentNumber, segmentOffset, segmentSize);
 
                 byte[] array1 = TestUtils.generateArray(101);
                 byte[] array2 = TestUtils.generateArray(102);
@@ -128,7 +125,7 @@ public class MappedByteArrayStorageSegmentTest {
                 assertEquals(4, headerAfter.getLastNonFreeRecord());
                 assertEquals(headerBefore.getUnallocatedSpace()
                                 + releasedSpace
-                                + MappedByteArrayStorageIndexRecord.ByteSize
+                                + MappedByteArrayStorageIndexRecord.getStorageAdapter().getRecordSize()
                                 + 4 /*Free Record Index Heap Entry*/
                         , headerAfter.getUnallocatedSpace());
                 assertEquals(usedSpace, headerAfter.getAllocatedSpace());
@@ -142,27 +139,24 @@ public class MappedByteArrayStorageSegmentTest {
                 assertNull(segment.getArray(key6));
                 assertTrue(Arrays.equals(array2_2, segment.getArray(key2_2)));
             }
-
-            // A mapped byte buffer and the file mapping that it represents
-            // remain valid until the buffer itself is garbage-collected.
-            buffer = null;
         }
     }
 
     @Test
     public void testFreeRecordsHeap() throws IOException {
-        try (TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testFreeRecordsHeap")) {
 
-            // lets make segment big enough, to avoid uncalled garbage collection when arrays are added
-            final int segmentSize = 10000;
-            final int segmentNumber = 1234;
+        // lets make segment big enough, to avoid uncalled garbage collection when arrays are added
+        final int segmentSize = 10000;
+        final int segmentNumber = 1234;
 
-            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
-
+        try (
+                TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testFreeRecordsHeap");
+                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), segmentSize + 1)
+        ) {
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {
                 MappedByteArrayStorageSegment segment
-                        = MappedByteArrayStorageSegment.create(buffer, segmentNumber, segmentOffset, segmentSize);
+                        = MappedByteArrayStorageSegment.create(mappedFile, segmentNumber, segmentOffset, segmentSize);
 
                 byte[] array = TestUtils.generateArray(20);
 
@@ -262,27 +256,23 @@ public class MappedByteArrayStorageSegmentTest {
                 assertEquals(7, key7_4.getRecordNumber());
                 assertEquals(8, key8_4.getRecordNumber());
             }
-
-            // A mapped byte buffer and the file mapping that it represents
-            // remain valid until the buffer itself is garbage-collected.
-            buffer = null;
         }
     }
 
     @Test
     public void testRecordIdCheck() throws IOException {
-        try (TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testRecordIdCheck")) {
+        // lets make segment big enough, to avoid uncalled garbage collection when arrays are added
+        final int segmentSize = 1000;
+        final int segmentNumber = 1234;
 
-            // lets make segment big enough, to avoid uncalled garbage collection when arrays are added
-            final int segmentSize = 1000;
-            final int segmentNumber = 1234;
-
-            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
-
+        try (
+                TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testRecordIdCheck");
+                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), segmentSize + 1)
+        ) {
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {
                 MappedByteArrayStorageSegment segment
-                        = MappedByteArrayStorageSegment.create(buffer, segmentNumber, segmentOffset, segmentSize);
+                        = MappedByteArrayStorageSegment.create(mappedFile, segmentNumber, segmentOffset, segmentSize);
 
                 byte[] array = TestUtils.generateArray(20);
 
@@ -304,27 +294,24 @@ public class MappedByteArrayStorageSegmentTest {
                 );
                 assertTrue(segment.deleteArray(correctKey));
             }
-
-            // A mapped byte buffer and the file mapping that it represents
-            // remain valid until the buffer itself is garbage-collected.
-            buffer = null;
         }
     }
 
     @Test
     public void testRead() throws IOException {
-        try (TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testRead")) {
 
-            // lets make segment big enough, to avoid uncalled garbage collection when arrays are added
-            final int segmentSize = 1000;
-            final int segmentNumber = 1234;
+        // lets make segment big enough, to avoid uncalled garbage collection when arrays are added
+        final int segmentSize = 1000;
+        final int segmentNumber = 1234;
 
-            MappedByteBuffer buffer = IOUtils.createMappedByteBuffer(testFolder.getFile("test.dat"), segmentSize + 1);
-
+        try (
+                TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testRead");
+                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), segmentSize + 1)
+        ) {
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {
                 MappedByteArrayStorageSegment segment1
-                        = MappedByteArrayStorageSegment.create(buffer, segmentNumber, segmentOffset, segmentSize);
+                        = MappedByteArrayStorageSegment.create(mappedFile, segmentNumber, segmentOffset, segmentSize);
 
                 // lets make some operations to make segment non-trivial
                 byte[] array1 = TestUtils.generateArray(20);
@@ -338,16 +325,12 @@ public class MappedByteArrayStorageSegmentTest {
                 segment1.deleteArray(key2);
 
                 MappedByteArrayStorageSegment segment2
-                        = MappedByteArrayStorageSegment.read(buffer, segmentNumber, segmentOffset, segmentSize);
+                        = MappedByteArrayStorageSegment.read(mappedFile, segmentNumber, segmentOffset, segmentSize);
 
                 assertTrue(Arrays.equals(array1, segment2.getArray(key1)));
                 assertNull(segment2.getArray(key2));
                 assertTrue(Arrays.equals(array3, segment2.getArray(key3)));
             }
-
-            // A mapped byte buffer and the file mapping that it represents
-            // remain valid until the buffer itself is garbage-collected.
-            buffer = null;
         }
     }
 }

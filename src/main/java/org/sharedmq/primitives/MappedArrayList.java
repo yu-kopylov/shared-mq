@@ -109,7 +109,7 @@ public class MappedArrayList<TRecord> implements Closeable {
         ensureBufferCapacity(recordCount);
 
         int recordOffset = getRecordOffset(recordSize, recordIndex);
-        mappedFile.put(recordOffset, adapter, value);
+        mappedFile.put(recordOffset, value, adapter);
 
         mappedFile.putInt(RecordCountOffset, recordCount);
     }
@@ -131,7 +131,7 @@ public class MappedArrayList<TRecord> implements Closeable {
         // Array size could have been changed by other array instance.
         ensureBufferCapacity(size());
         int recordOffset = getRecordOffset(recordSize, recordIndex);
-        mappedFile.put(recordOffset, adapter, value);
+        mappedFile.put(recordOffset, value, adapter);
     }
 
     public TRecord removeLast() throws IOException {

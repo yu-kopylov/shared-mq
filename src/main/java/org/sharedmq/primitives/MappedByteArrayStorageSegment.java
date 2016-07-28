@@ -58,12 +58,18 @@ public class MappedByteArrayStorageSegment {
 
     private static final Logger logger = LoggerFactory.getLogger(MappedByteArrayStorageSegment.class);
 
+    private static final StorageAdapter<MappedByteArrayStorageSegmentHeader> SegmentHeaderStorageAdapter
+            = MappedByteArrayStorageSegmentHeader.getStorageAdapter();
+
+    private static final StorageAdapter<MappedByteArrayStorageIndexRecord> IndexRecordStorageAdapter
+            = MappedByteArrayStorageIndexRecord.getStorageAdapter();
+
     /**
      * The size of one index record including its heap part.
      */
-    public static final int IndexRecordSize = MappedByteArrayStorageIndexRecord.ByteSize + 4;
+    public static final int IndexRecordSize = IndexRecordStorageAdapter.getRecordSize() + 4;
 
-    private final MappedByteBuffer buffer;
+    private final MemoryMappedFile mappedFile;
 
     private final int segmentNumber;
     private final int segmentOffset;
@@ -72,13 +78,13 @@ public class MappedByteArrayStorageSegment {
     private final MappedByteArrayStorageSegmentHeader header;
 
     private MappedByteArrayStorageSegment(
-            MappedByteBuffer buffer,
+            MemoryMappedFile mappedFile,
             int segmentNumber,
             int segmentOffset,
             int segmentSize,
             MappedByteArrayStorageSegmentHeader header
     ) {
-        this.buffer = buffer;
+        this.mappedFile = mappedFile;
         this.segmentNumber = segmentNumber;
         this.segmentOffset = segmentOffset;
         this.segmentSize = segmentSize;
@@ -86,7 +92,7 @@ public class MappedByteArrayStorageSegment {
     }
 
     public static MappedByteArrayStorageSegment create(
-            MappedByteBuffer buffer,
+            MemoryMappedFile mappedFile,
             int segmentNumber,
             int segmentOffset,
             int segmentSize
@@ -95,28 +101,24 @@ public class MappedByteArrayStorageSegment {
         header.setIndexRecordCount(0);
         header.setFreeRecordCount(0);
         header.setLastNonFreeRecord(-1);
-        header.setUnallocatedSpace(segmentSize - MappedByteArrayStorageSegmentHeader.ByteSize);
+        header.setUnallocatedSpace(segmentSize - SegmentHeaderStorageAdapter.getRecordSize());
         header.setAllocatedSpace(0);
         header.setReleasedSpace(0);
 
-        buffer.position(segmentOffset);
-        header.writeTo(buffer);
+        mappedFile.put(segmentOffset, header, SegmentHeaderStorageAdapter);
 
-        return new MappedByteArrayStorageSegment(buffer, segmentNumber, segmentOffset, segmentSize, header);
+        return new MappedByteArrayStorageSegment(mappedFile, segmentNumber, segmentOffset, segmentSize, header);
     }
 
     public static MappedByteArrayStorageSegment read(
-            MappedByteBuffer buffer,
+            MemoryMappedFile mappedFile,
             int segmentNumber,
             int segmentOffset,
             int segmentSize
     ) throws IOException {
-        MappedByteArrayStorageSegmentHeader header = new MappedByteArrayStorageSegmentHeader();
-
-        buffer.position(segmentOffset);
-        header.readFrom(buffer);
-
-        return new MappedByteArrayStorageSegment(buffer, segmentNumber, segmentOffset, segmentSize, header);
+        MappedByteArrayStorageSegmentHeader header
+                = mappedFile.get(segmentOffset, SegmentHeaderStorageAdapter);
+        return new MappedByteArrayStorageSegment(mappedFile, segmentNumber, segmentOffset, segmentSize, header);
     }
 
     /**
@@ -126,13 +128,7 @@ public class MappedByteArrayStorageSegment {
      * @throws IOException If the header cannot be read.
      */
     public MappedByteArrayStorageSegmentHeader getHeader() throws IOException {
-
-        MappedByteArrayStorageSegmentHeader header = new MappedByteArrayStorageSegmentHeader();
-
-        buffer.position(segmentOffset);
-        header.readFrom(buffer);
-
-        return header;
+        return mappedFile.get(segmentOffset, SegmentHeaderStorageAdapter);
     }
 
     public boolean canAllocate(int arrayLength) {
@@ -169,28 +165,23 @@ public class MappedByteArrayStorageSegment {
         }
     }
 
-    public byte[] getArray(MappedByteArrayStorageKey key) {
+    public byte[] getArray(MappedByteArrayStorageKey key) throws IOException {
         int recordNumber = key.getRecordNumber();
         if (recordNumber >= header.getIndexRecordCount()) {
             return null;
         }
 
-        buffer.position(getIndexRecordOffset(recordNumber));
-        MappedByteArrayStorageIndexRecord record = MappedByteArrayStorageIndexRecord.readFrom(buffer);
+        int recordOffset = getIndexRecordOffset(recordNumber);
+        MappedByteArrayStorageIndexRecord record = mappedFile.get(recordOffset, IndexRecordStorageAdapter);
 
         if (record.isFree() || record.getRecordId() != key.getRecordId()) {
             return null;
         }
 
-        byte[] array = new byte[record.getDataLength()];
-
-        buffer.position(segmentOffset + record.getDataOffset());
-        buffer.get(array);
-
-        return array;
+        return mappedFile.getBytes(segmentOffset + record.getDataOffset(), record.getDataLength());
     }
 
-    public boolean deleteArray(MappedByteArrayStorageKey key) {
+    public boolean deleteArray(MappedByteArrayStorageKey key) throws IOException {
         int recordNumber = key.getRecordNumber();
         if (recordNumber >= header.getIndexRecordCount()) {
             return false;
@@ -198,16 +189,14 @@ public class MappedByteArrayStorageSegment {
 
         int recordOffset = getIndexRecordOffset(recordNumber);
 
-        buffer.position(recordOffset);
-        MappedByteArrayStorageIndexRecord record = MappedByteArrayStorageIndexRecord.readFrom(buffer);
+        MappedByteArrayStorageIndexRecord record = mappedFile.get(recordOffset, IndexRecordStorageAdapter);
 
         if (record.isFree() || record.getRecordId() != key.getRecordId()) {
             return false;
         }
 
         record = record.markDeleted();
-        buffer.position(recordOffset);
-        record.writeTo(buffer);
+        mappedFile.put(recordOffset, record, IndexRecordStorageAdapter);
 
         pushFreeRecordNumber(recordNumber);
 
@@ -217,8 +206,7 @@ public class MappedByteArrayStorageSegment {
         }
         header.setReleasedSpace(header.getReleasedSpace() + record.getDataLength());
 
-        buffer.position(segmentOffset);
-        header.writeTo(buffer);
+        mappedFile.put(segmentOffset, header, SegmentHeaderStorageAdapter);
 
         return true;
     }
@@ -235,11 +223,10 @@ public class MappedByteArrayStorageSegment {
      * @param recordNumber The number of the record to start searching from.
      * @return The record number of the last non-free record; or -1 if all records are free.
      */
-    private int getLastNonFreeRecord(int recordNumber) {
+    private int getLastNonFreeRecord(int recordNumber) throws IOException {
         while (recordNumber >= 0) {
             int recordOffset = getIndexRecordOffset(recordNumber);
-            buffer.position(recordOffset);
-            MappedByteArrayStorageIndexRecord record = MappedByteArrayStorageIndexRecord.readFrom(buffer);
+            MappedByteArrayStorageIndexRecord record = mappedFile.get(recordOffset, IndexRecordStorageAdapter);
             if (!record.isFree()) {
                 break;
             }
@@ -251,8 +238,7 @@ public class MappedByteArrayStorageSegment {
     private MappedByteArrayStorageKey allocateArray(long recordId, byte[] array) {
 
         int dataOffset = segmentSize - header.getAllocatedSpace() - array.length;
-        buffer.position(segmentOffset + dataOffset);
-        buffer.put(array);
+        mappedFile.putBytes(segmentOffset + dataOffset, array);
 
         header.setUnallocatedSpace(header.getUnallocatedSpace() - array.length);
         header.setAllocatedSpace(header.getAllocatedSpace() + array.length);
@@ -276,11 +262,10 @@ public class MappedByteArrayStorageSegment {
 
         // Note that heap part of the index is not updated here.
         // Heap is either remains unchanged or was already updated by the pollFreeRecordNumber method.
-        buffer.position(getIndexRecordOffset(recordNumber));
-        record.writeTo(buffer);
+        int recordOffset = getIndexRecordOffset(recordNumber);
+        mappedFile.put(recordOffset, record, IndexRecordStorageAdapter);
 
-        buffer.position(segmentOffset);
-        header.writeTo(buffer);
+        mappedFile.put(segmentOffset, header, SegmentHeaderStorageAdapter);
 
         return new MappedByteArrayStorageKey(segmentNumber, recordNumber, recordId);
     }
@@ -375,7 +360,7 @@ public class MappedByteArrayStorageSegment {
         }
     }
 
-    public void collectGarbage() {
+    public void collectGarbage() throws IOException {
 
         Stopwatch stopwatch = Stopwatch.createStarted();
 
@@ -390,8 +375,8 @@ public class MappedByteArrayStorageSegment {
         List<MappedByteArrayStorageIndexRecord> allRecords = new ArrayList<>();
         int allocatedSpace = 0;
         for (int i = 0; i < header.getIndexRecordCount(); i++) {
-            buffer.position(getIndexRecordOffset(i));
-            MappedByteArrayStorageIndexRecord record = MappedByteArrayStorageIndexRecord.readFrom(buffer);
+            int recordOffset = getIndexRecordOffset(i);
+            MappedByteArrayStorageIndexRecord record = mappedFile.get(recordOffset, IndexRecordStorageAdapter);
             allRecords.add(record);
             if (!record.isFree()) {
                 allocatedSpace += record.getDataLength();
@@ -411,49 +396,48 @@ public class MappedByteArrayStorageSegment {
 
                 int dataLength = record.getDataLength();
 
-                buffer.position(segmentOffset + record.getDataOffset());
-                buffer.get(tempBuffer, nextTempOffset, dataLength);
+                mappedFile.getBytes(segmentOffset + record.getDataOffset(), tempBuffer, nextTempOffset, dataLength);
 
                 record = record.relocateData(nextDataOffset);
-                buffer.position(getIndexRecordOffset(recordNumber));
-                record.writeTo(buffer);
+                int recordOffset = getIndexRecordOffset(recordNumber);
+                mappedFile.put(recordOffset, record, IndexRecordStorageAdapter);
 
                 nextDataOffset += dataLength;
                 nextTempOffset += dataLength;
             }
         }
 
-        buffer.position(segmentOffset + firstDataOffset);
-        buffer.put(tempBuffer);
+        mappedFile.putBytes(segmentOffset + firstDataOffset, tempBuffer);
 
         header.setAllocatedSpace(allocatedSpace);
         header.setReleasedSpace(0);
         header.setUnallocatedSpace(
                 segmentSize
-                        - MappedByteArrayStorageSegmentHeader.ByteSize
+                        - SegmentHeaderStorageAdapter.getRecordSize()
                         - header.getIndexRecordCount() * IndexRecordSize
                         - allocatedSpace);
 
-        buffer.position(segmentOffset);
-        header.writeTo(buffer);
+        mappedFile.put(segmentOffset, header, SegmentHeaderStorageAdapter);
 
         logger.trace("Garbage collection completed within " + stopwatch.elapsed(TimeUnit.MILLISECONDS) + "ms.");
     }
 
     private int getHeapValueAt(int valueIndex) {
-        return buffer.getInt(getHeapValueOffset(valueIndex));
+        return mappedFile.getInt(getHeapValueOffset(valueIndex));
     }
 
     private void putHeapValueAt(int valueIndex, int value) {
-        buffer.putInt(getHeapValueOffset(valueIndex), value);
+        mappedFile.putInt(getHeapValueOffset(valueIndex), value);
     }
 
     private int getHeapValueOffset(int recordNumber) {
         // heap value follows the index record
-        return getIndexRecordOffset(recordNumber) + MappedByteArrayStorageIndexRecord.ByteSize;
+        return getIndexRecordOffset(recordNumber) + IndexRecordStorageAdapter.getRecordSize();
     }
 
     private int getIndexRecordOffset(int recordNumber) {
-        return segmentOffset + MappedByteArrayStorageSegmentHeader.ByteSize + recordNumber * IndexRecordSize;
+        return segmentOffset
+                + SegmentHeaderStorageAdapter.getRecordSize()
+                + recordNumber * IndexRecordSize;
     }
 }

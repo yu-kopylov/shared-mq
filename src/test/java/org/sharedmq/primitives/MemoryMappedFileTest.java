@@ -17,10 +17,17 @@ public class MemoryMappedFileTest {
                 TestFolder testFolder = new TestFolder("MemoryMappedFileTest", "testSmoke");
                 MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), 4096)
         ) {
+            // test int
             mappedFile.putInt(0, 0x12345678);
             mappedFile.putInt(4, -0x12345678);
             assertEquals(0x12345678, mappedFile.getInt(0));
             assertEquals(-0x12345678, mappedFile.getInt(4));
+
+            // test long
+            mappedFile.putLong(0, 0x1234567890ABCDEFL);
+            mappedFile.putLong(8, -0x1234567890ABCDEFL);
+            assertEquals(0x1234567890ABCDEFL, mappedFile.getLong(0));
+            assertEquals(-0x1234567890ABCDEFL, mappedFile.getLong(8));
 
             assertEquals(4096, mappedFile.capacity());
 

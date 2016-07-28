@@ -1,5 +1,6 @@
 package org.sharedmq.primitives;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
@@ -9,7 +10,7 @@ import java.nio.ByteBuffer;
  */
 public class MappedByteArrayStorageIndexRecord {
 
-    public static final int ByteSize = 8 + 2 * 4 + 1;
+    private static final IndexRecordStorageAdapter storageAdapter = new IndexRecordStorageAdapter();
 
     /**
      * The unique identifier of the stored byte array.<br/>
@@ -56,21 +57,6 @@ public class MappedByteArrayStorageIndexRecord {
         return free;
     }
 
-    public void writeTo(ByteBuffer buffer) {
-        buffer.putLong(recordId);
-        buffer.putInt(dataOffset);
-        buffer.putInt(dataLength);
-        buffer.put((byte) (free ? 1 : 0));
-    }
-
-    public static MappedByteArrayStorageIndexRecord readFrom(ByteBuffer buffer) {
-        long recordId = buffer.getLong();
-        int dataOffset = buffer.getInt();
-        int dataLength = buffer.getInt();
-        boolean free = buffer.get() != 0;
-        return new MappedByteArrayStorageIndexRecord(recordId, dataOffset, dataLength, free);
-    }
-
     /**
      * Returns a new record that is marked as free.
      */
@@ -85,5 +71,33 @@ public class MappedByteArrayStorageIndexRecord {
      */
     public MappedByteArrayStorageIndexRecord relocateData(int dataOffset) {
         return new MappedByteArrayStorageIndexRecord(recordId, dataOffset, dataLength, free);
+    }
+
+    public static StorageAdapter<MappedByteArrayStorageIndexRecord> getStorageAdapter() {
+        return storageAdapter;
+    }
+
+    private static class IndexRecordStorageAdapter implements StorageAdapter<MappedByteArrayStorageIndexRecord> {
+        @Override
+        public int getRecordSize() {
+            return 8 + 2 * 4 + 1;
+        }
+
+        @Override
+        public void store(ByteBuffer buffer, MappedByteArrayStorageIndexRecord record) {
+            buffer.putLong(record.getRecordId());
+            buffer.putInt(record.getDataOffset());
+            buffer.putInt(record.getDataLength());
+            buffer.put((byte) (record.isFree() ? 1 : 0));
+        }
+
+        @Override
+        public MappedByteArrayStorageIndexRecord load(ByteBuffer buffer) throws IOException {
+            long recordId = buffer.getLong();
+            int dataOffset = buffer.getInt();
+            int dataLength = buffer.getInt();
+            boolean free = buffer.get() != 0;
+            return new MappedByteArrayStorageIndexRecord(recordId, dataOffset, dataLength, free);
+        }
     }
 }

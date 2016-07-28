@@ -27,46 +27,35 @@ public class MappedByteArrayStorage implements Closeable {
     private static final int NextRecordIdOffset = 12;
     private static final int HeaderSize = 20;
 
-    private RandomAccessFile randomAccessFile;
-    private FileChannel fileChannel;
-    private MappedByteBuffer buffer;
+    private MemoryMappedFile mappedFile;
 
     public MappedByteArrayStorage(File file) throws IOException {
-        try {
-
-            randomAccessFile = new RandomAccessFile(file, "rw");
-            fileChannel = randomAccessFile.getChannel();
-
-            long fileSize = randomAccessFile.getChannel().size();
-            boolean newFile = fileSize == 0;
-            if (newFile) {
-                buffer = createFile(fileChannel);
-            } else {
-                buffer = openFile(fileChannel, fileSize);
-            }
-
-        } catch (Throwable e) {
-            buffer = null;
-            IOUtils.closeOnError(e, fileChannel, randomAccessFile);
-            throw e;
+        if (file.exists()) {
+            mappedFile = openFile(file, file.length());
+        } else {
+            mappedFile = createFile(file);
         }
     }
 
     @Override
     public void close() throws IOException {
-        buffer = null;
-        IOUtils.close(fileChannel, randomAccessFile);
+        IOUtils.close(mappedFile);
     }
 
-    private static MappedByteBuffer createFile(FileChannel fileChannel) throws IOException {
-        MappedByteBuffer buffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, HeaderSize);
-        buffer.putInt(FileMarkerOffset, FileMarker);
-        buffer.putInt(SegmentSizeOffset, SegmentSize);
-        buffer.putInt(SegmentCountOffset, 0);
-        return buffer;
+    private static MemoryMappedFile createFile(File file) throws IOException {
+        MemoryMappedFile mappedFile = new MemoryMappedFile(file, (int) HeaderSize);
+        try {
+            mappedFile.putInt(FileMarkerOffset, FileMarker);
+            mappedFile.putInt(SegmentSizeOffset, SegmentSize);
+            mappedFile.putInt(SegmentCountOffset, 0);
+        } catch (Throwable e) {
+            IOUtils.closeOnError(e, mappedFile);
+            throw e;
+        }
+        return mappedFile;
     }
 
-    private static MappedByteBuffer openFile(FileChannel fileChannel, long fileSize) throws IOException {
+    private static MemoryMappedFile openFile(File file, long fileSize) throws IOException {
 
         if (fileSize > MaxFileSize) {
             throw new IOException("The file is too big to be a MappedByteArrayStorage file.");
@@ -75,31 +64,34 @@ public class MappedByteArrayStorage implements Closeable {
             throw new IOException("The file is too short to be a MappedByteArrayStorage file.");
         }
 
-        MappedByteBuffer buffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, fileSize);
+        MemoryMappedFile mappedFile = new MemoryMappedFile(file, (int) fileSize);
+        try {
+            int marker = mappedFile.getInt(FileMarkerOffset);
+            if (marker != FileMarker) {
+                throw new IOException("The file does not contain a MappedByteArrayStorage file marker.");
+            }
 
-        int marker = buffer.getInt(FileMarkerOffset);
-        if (marker != FileMarker) {
-            throw new IOException("The file does not contain a MappedByteArrayStorage file marker.");
+            int fileSegmentSize = mappedFile.getInt(SegmentSizeOffset);
+            if (SegmentSize != fileSegmentSize) {
+                throw new IOException(
+                        "The MappedByteArrayStorage file has a different segment size (" + fileSegmentSize + ").");
+            }
+
+            int segmentCount = mappedFile.getInt(SegmentCountOffset);
+            if (segmentCount < 0) {
+                throw new IOException(
+                        "The MappedByteArrayStorage file has an invalid segment count (" + segmentCount + ").");
+            }
+
+            long requiredSize = getRequiredSize(segmentCount);
+            if (requiredSize > fileSize) {
+                throw new IOException("The MappedByteArrayStorage file is incomplete.");
+            }
+        } catch (Throwable e) {
+            IOUtils.closeOnError(e, mappedFile);
+            throw e;
         }
-
-        int fileSegmentSize = buffer.getInt(SegmentSizeOffset);
-        if (SegmentSize != fileSegmentSize) {
-            throw new IOException(
-                    "The MappedByteArrayStorage file has a different segment size (" + fileSegmentSize + ").");
-        }
-
-        int segmentCount = buffer.getInt(SegmentCountOffset);
-        if (segmentCount < 0) {
-            throw new IOException(
-                    "The MappedByteArrayStorage file has an invalid segment count (" + segmentCount + ").");
-        }
-
-        long requiredSize = getRequiredSize(segmentCount);
-        if (requiredSize > fileSize) {
-            throw new IOException("The MappedByteArrayStorage file is incomplete.");
-        }
-
-        return buffer;
+        return mappedFile;
     }
 
     public MappedByteArrayStorageKey add(byte[] array) throws IOException {
@@ -118,7 +110,7 @@ public class MappedByteArrayStorage implements Closeable {
 
         int segmentNumber = key.getSegmentNumber();
         MappedByteArrayStorageSegment segment = MappedByteArrayStorageSegment.read(
-                buffer,
+                mappedFile,
                 segmentNumber,
                 getSegmentOffset(segmentNumber),
                 SegmentSize);
@@ -132,7 +124,7 @@ public class MappedByteArrayStorage implements Closeable {
 
         int segmentNumber = key.getSegmentNumber();
         MappedByteArrayStorageSegment segment = MappedByteArrayStorageSegment.read(
-                buffer,
+                mappedFile,
                 segmentNumber,
                 getSegmentOffset(segmentNumber),
                 SegmentSize);
@@ -148,7 +140,7 @@ public class MappedByteArrayStorage implements Closeable {
         int segmentCount = getSegmentCount();
         for (int i = 0; i < segmentCount; i++) {
             MappedByteArrayStorageSegment segment = MappedByteArrayStorageSegment.read(
-                    buffer,
+                    mappedFile,
                     i,
                     getSegmentOffset(i),
                     SegmentSize);
@@ -163,11 +155,11 @@ public class MappedByteArrayStorage implements Closeable {
         int segmentNumber = getSegmentCount();
         ensureBufferCapacity(segmentNumber + 1);
         MappedByteArrayStorageSegment segment = MappedByteArrayStorageSegment.create(
-                buffer,
+                mappedFile,
                 segmentNumber,
                 getSegmentOffset(segmentNumber),
                 SegmentSize);
-        buffer.putInt(SegmentCountOffset, segmentNumber + 1);
+        mappedFile.putInt(SegmentCountOffset, segmentNumber + 1);
         return segment;
     }
 
@@ -176,9 +168,7 @@ public class MappedByteArrayStorage implements Closeable {
         if (requiredFileSize > MaxFileSize) {
             throw new IOException("The MappedByteArrayStorage cannot be bigger than " + MaxFileSize + " bytes.");
         }
-        if (requiredFileSize > buffer.capacity()) {
-            buffer = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, requiredFileSize);
-        }
+        mappedFile.ensureCapacity((int) requiredFileSize);
     }
 
     private void checkSegmentKey(MappedByteArrayStorageKey key) {
@@ -200,14 +190,14 @@ public class MappedByteArrayStorage implements Closeable {
     }
 
     private int getSegmentCount() {
-        return buffer.getInt(SegmentCountOffset);
+        return mappedFile.getInt(SegmentCountOffset);
     }
 
     private long getNextRecordId() {
         // Even if we would generate 1000000000 id values per second,
         // it would take 584 years to reach a collision.
-        long recordId = buffer.getLong(NextRecordIdOffset);
-        buffer.putLong(NextRecordIdOffset, recordId + 1);
+        long recordId = mappedFile.getLong(NextRecordIdOffset);
+        mappedFile.putLong(NextRecordIdOffset, recordId + 1);
         return recordId;
     }
 }
