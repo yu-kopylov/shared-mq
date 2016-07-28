@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.MappedByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -178,7 +177,9 @@ public class MappedByteArrayStorageSegment {
             return null;
         }
 
-        return mappedFile.getBytes(segmentOffset + record.getDataOffset(), record.getDataLength());
+        byte[] array = new byte[record.getDataLength()];
+        mappedFile.readBytes(segmentOffset + record.getDataOffset(), array, 0, record.getDataLength());
+        return array;
     }
 
     public boolean deleteArray(MappedByteArrayStorageKey key) throws IOException {
@@ -238,7 +239,7 @@ public class MappedByteArrayStorageSegment {
     private MappedByteArrayStorageKey allocateArray(long recordId, byte[] array) {
 
         int dataOffset = segmentSize - header.getAllocatedSpace() - array.length;
-        mappedFile.putBytes(segmentOffset + dataOffset, array);
+        mappedFile.writeBytes(segmentOffset + dataOffset, array, 0, array.length);
 
         header.setUnallocatedSpace(header.getUnallocatedSpace() - array.length);
         header.setAllocatedSpace(header.getAllocatedSpace() + array.length);
@@ -396,7 +397,7 @@ public class MappedByteArrayStorageSegment {
 
                 int dataLength = record.getDataLength();
 
-                mappedFile.getBytes(segmentOffset + record.getDataOffset(), tempBuffer, nextTempOffset, dataLength);
+                mappedFile.readBytes(segmentOffset + record.getDataOffset(), tempBuffer, nextTempOffset, dataLength);
 
                 record = record.relocateData(nextDataOffset);
                 int recordOffset = getIndexRecordOffset(recordNumber);
@@ -407,7 +408,7 @@ public class MappedByteArrayStorageSegment {
             }
         }
 
-        mappedFile.putBytes(segmentOffset + firstDataOffset, tempBuffer);
+        mappedFile.writeBytes(segmentOffset + firstDataOffset, tempBuffer, 0, allocatedSpace);
 
         header.setAllocatedSpace(allocatedSpace);
         header.setReleasedSpace(0);

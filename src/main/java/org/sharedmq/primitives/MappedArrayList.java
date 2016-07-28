@@ -72,7 +72,7 @@ public class MappedArrayList<TRecord> implements Closeable {
         try {
             int marker = mappedFile.getInt(FileMarkerOffset);
             if (marker != FileMarker) {
-                throw new IOException("The file does not contain a MappedArrayList file marker.");
+                throw new IOException("The file does not contain the MappedArrayList file marker.");
             }
 
             int fileRecordSize = mappedFile.getInt(RecordSizeOffset);

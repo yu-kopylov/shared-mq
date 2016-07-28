@@ -9,7 +9,7 @@ import java.nio.channels.FileChannel;
 /**
  * A memory-mapped file.
  */
-public class MemoryMappedFile implements Closeable {
+public class MemoryMappedFile implements DataFile, Closeable {
 
     private RandomAccessFile randomAccessFile;
     private FileChannel channel;
@@ -27,10 +27,17 @@ public class MemoryMappedFile implements Closeable {
         }
     }
 
+    @Override
+    public void close() throws IOException {
+        buffer = null;
+        IOUtils.close(channel, randomAccessFile);
+    }
+
     public long capacity() {
         return buffer.capacity();
     }
 
+    @Override
     public void ensureCapacity(int capacity) throws IOException {
         if (buffer.capacity() < capacity) {
             buffer = channel.map(FileChannel.MapMode.READ_WRITE, 0, capacity);
@@ -38,50 +45,45 @@ public class MemoryMappedFile implements Closeable {
     }
 
     @Override
-    public void close() throws IOException {
-        buffer = null;
-        IOUtils.close(channel, randomAccessFile);
-    }
-
     public int getInt(int offset) {
         return buffer.getInt(offset);
     }
 
+    @Override
     public long getLong(int offset) {
         return buffer.getLong(offset);
     }
 
     //todo: test
-    public byte[] getBytes(int fileOffset, int dataLength) {
-        byte[] bytes = new byte[dataLength];
-        getBytes(fileOffset, bytes, 0, dataLength);
-        return bytes;
-    }
-
-    //todo: test
-    public void getBytes(int fileOffset, byte[] array, int arrayOffset, int dataLength) {
+    @Override
+    public void readBytes(int fileOffset, byte[] array, int arrayOffset, int dataLength) {
         buffer.position(fileOffset);
         buffer.get(array, arrayOffset, dataLength);
     }
 
+    @Override
     public <TRecord> TRecord get(int offset, StorageAdapter<TRecord> adapter) throws IOException {
         buffer.position(offset);
         return adapter.load(buffer);
     }
 
+    @Override
     public void putInt(int offset, int value) {
         buffer.putInt(offset, value);
     }
 
+    @Override
     public void putLong(int offset, long value) {
         buffer.putLong(offset, value);
     }
 
-    public void putBytes(int offset, byte[] array) {
+    @Override
+    public void writeBytes(int offset, byte[] array, int arrayOffset, int dataLength) {
         buffer.position(offset);
-        buffer.put(array, 0, array.length);
+        buffer.put(array, arrayOffset, dataLength);
     }
 
+    @Override
     public <TRecord> void put(int offset, TRecord value, StorageAdapter<TRecord> adapter) {
         buffer.position(offset);
         adapter.store(buffer, value);

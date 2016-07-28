@@ -68,7 +68,7 @@ public class MappedByteArrayStorage implements Closeable {
         try {
             int marker = mappedFile.getInt(FileMarkerOffset);
             if (marker != FileMarker) {
-                throw new IOException("The file does not contain a MappedByteArrayStorage file marker.");
+                throw new IOException("The file does not contain the MappedByteArrayStorage file marker.");
             }
 
             int fileSegmentSize = mappedFile.getInt(SegmentSizeOffset);
