@@ -576,7 +576,7 @@ public class SharedMessageQueueTest {
     }
 
     @Test
-    public void testPushRollback() throws InterruptedException, IOException {
+    public void testPullAfterPushRollback() throws InterruptedException, IOException {
         try (
                 TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testPushRollback");
                 SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
@@ -596,7 +596,35 @@ public class SharedMessageQueueTest {
     }
 
     @Test
-    public void testPullRollback() throws InterruptedException, IOException {
+    public void testPushAfterPushRollback() throws InterruptedException, IOException {
+        try (
+                TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testPushRollback");
+                SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                SharedMessageQueue queue = spy(realQueue)
+        ) {
+            // 1st call is in cleanupQueue
+            // 2nd call is in push
+            doCallRealMethod().doThrow(RuntimeException.class).when(queue).commit();
+
+            assertThrows(RuntimeException.class, null, () -> queue.push(0, "Test Message"));
+
+            doCallRealMethod().when(queue).commit();
+
+            queue.push(0, "Test Message");
+            assertEquals(queue.size(), 1);
+
+            Message message = queue.pull(0);
+            assertNotNull(message);
+            assertEquals("Test Message", message.asString());
+
+            queue.delete(message);
+            assertNull(queue.pull(0));
+            assertEquals(queue.size(), 0);
+        }
+    }
+
+    @Test
+    public void testPullAfterPullRollback() throws InterruptedException, IOException {
         try (
                 TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testPullRollback");
                 SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
@@ -615,6 +643,40 @@ public class SharedMessageQueueTest {
             Message message = queue.pull(0);
             assertNotNull(message);
             assertEquals("Test Message", message.asString());
+            queue.delete(message);
+            assertEquals(0, queue.size());
+        }
+    }
+
+    @Test
+    public void testPushAfterPullRollback() throws InterruptedException, IOException {
+        try (
+                TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testPullRollback");
+                SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                SharedMessageQueue queue = spy(realQueue)
+        ) {
+            queue.push(0, "Test Message 1");
+
+            // 1st call is in cleanupQueue
+            // 2nd call is in pollMessage
+            doCallRealMethod().doThrow(RuntimeException.class).when(queue).commit();
+
+            assertThrows(RuntimeException.class, null, () -> queue.pull(0));
+
+            doCallRealMethod().when(queue).commit();
+
+            queue.push(0, "Test Message 2");
+            assertEquals(2, queue.size());
+
+            Message message1 = queue.pull(0);
+            Message message2 = queue.pull(0);
+            assertNotNull(message1);
+            assertNotNull(message2);
+            assertEquals("Test Message 1", message1.asString());
+            assertEquals("Test Message 2", message2.asString());
+            queue.delete(message1);
+            queue.delete(message2);
+            assertEquals(0, queue.size());
         }
     }
 
