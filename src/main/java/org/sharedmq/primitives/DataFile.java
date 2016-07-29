@@ -1,11 +1,18 @@
 package org.sharedmq.primitives;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 /**
  * An interface for data files with random access.
  */
-public interface DataFile {
+public interface DataFile extends Closeable {
+
+    //todo: describe
+    long fileSize() throws IOException;
+
+    //todo: describe
+    int capacity();
 
     //todo: describe
     void ensureCapacity(int capacity) throws IOException;

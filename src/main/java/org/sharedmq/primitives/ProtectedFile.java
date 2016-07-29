@@ -2,10 +2,9 @@ package org.sharedmq.primitives;
 
 import org.sharedmq.util.IOUtils;
 
-import java.io.Closeable;
 import java.io.IOException;
 
-public class ProtectedFile implements DataFile, Closeable {
+public class ProtectedFile implements DataFile {
 
     private final RollbackJournal journal;
     private final int fileId;
@@ -21,6 +20,16 @@ public class ProtectedFile implements DataFile, Closeable {
 
     public MemoryMappedFile getUnprotected() {
         return mappedFile;
+    }
+
+    @Override
+    public long fileSize() throws IOException {
+        return mappedFile.fileSize();
+    }
+
+    @Override
+    public int capacity() {
+        return mappedFile.capacity();
     }
 
     @Override

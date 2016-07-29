@@ -26,6 +26,7 @@ public class SharedMessageQueue implements Closeable {
     private static final Charset encoding = StandardCharsets.UTF_8;
 
     private static final String ConfigFilename = "config.dat";
+    private static final String RollbackJournalFilename = "rollback.dat";
     private static final String MessageHeadersFilename = "headers.dat";
     private static final String FreeHeadersFilename = "free-headers.dat";
     static final String PriorityQueueFilename = "priority-queue.dat";
@@ -50,6 +51,11 @@ public class SharedMessageQueue implements Closeable {
      * Is stores queue parameters, and also is used for locks.
      */
     private ConfigurationFile configFile;
+
+    /**
+     * This is a rolback journal for the queue.
+     */
+    private RollbackJournal rollbackJournal;
 
     /**
      * This file contains message parameters and references to the priority queue and content storage.
@@ -80,6 +86,8 @@ public class SharedMessageQueue implements Closeable {
         config = configFile.getConfiguration();
 
         try {
+            rollbackJournal = new RollbackJournal(new File(rootFolder, RollbackJournalFilename));
+
             headers = new MappedArrayList<>(
                     new File(rootFolder, MessageHeadersFilename),
                     MessageHeaderStorageAdapter.getInstance());
@@ -88,16 +96,17 @@ public class SharedMessageQueue implements Closeable {
                     new File(rootFolder, FreeHeadersFilename),
                     IntegerStorageAdapter.getInstance());
 
-            priorityQueue = new MappedHeap<PriorityQueueRecord>(
+            priorityQueue = new MappedHeap<>(
                     new File(rootFolder, PriorityQueueFilename),
                     PriorityQueueRecordStorageAdapter.getInstance(),
                     PriorityQueueRecord::compareVisibility);
 
-            messageContents = new MappedByteArrayStorage(new File(rootFolder, MessageContentsFilename));
+            //todo: use protected file
+            messageContents = new MappedByteArrayStorage(new MemoryMappedFile(new File(rootFolder, MessageContentsFilename), 0));
 
             priorityQueue.register(this::updateHeapIndex);
         } catch (Throwable e) {
-            IOUtils.closeOnError(e, headers, freeHeaders, priorityQueue, messageContents);
+            IOUtils.closeOnError(e, headers, freeHeaders, priorityQueue, messageContents, rollbackJournal);
             throw e;
         }
     }
@@ -172,7 +181,7 @@ public class SharedMessageQueue implements Closeable {
 
     @Override
     public void close() throws IOException {
-        IOUtils.close(configFile, headers, freeHeaders, messageContents, priorityQueue);
+        IOUtils.close(configFile, headers, freeHeaders, messageContents, priorityQueue, rollbackJournal);
     }
 
     /**

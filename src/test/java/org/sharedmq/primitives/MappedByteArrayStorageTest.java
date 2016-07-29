@@ -18,7 +18,8 @@ public class MappedByteArrayStorageTest {
     public void testSmoke() throws IOException {
         try (
                 TestFolder testFolder = new TestFolder("MappedByteArrayStorageTest", "testSmoke");
-                MappedByteArrayStorage storage = new MappedByteArrayStorage(testFolder.getFile("test.dat"))
+                MemoryMappedFile file = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+                MappedByteArrayStorage storage = new MappedByteArrayStorage(file)
         ) {
             byte[] originalArray1 = TestUtils.generateArray(20);
 
@@ -54,7 +55,8 @@ public class MappedByteArrayStorageTest {
     public void testSegmentUsage() throws IOException {
         try (
                 TestFolder testFolder = new TestFolder("MappedByteArrayStorageTest", "testSegmentUsage");
-                MappedByteArrayStorage storage = new MappedByteArrayStorage(testFolder.getFile("test.dat"))
+                MemoryMappedFile memoryMappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+                MappedByteArrayStorage storage = new MappedByteArrayStorage(memoryMappedFile)
         ) {
             // The array size is set to 2/5 of the segment size.
             // That means that segment can accommodate 2 such arrays, but cannot accommodate the 3rd.
@@ -85,7 +87,8 @@ public class MappedByteArrayStorageTest {
     public void testRecordNumbers() throws IOException {
         try (
                 TestFolder testFolder = new TestFolder("MappedByteArrayStorageTest", "testRecordNumbers");
-                MappedByteArrayStorage storage = new MappedByteArrayStorage(testFolder.getFile("test.dat"))
+                MemoryMappedFile memoryMappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+                MappedByteArrayStorage storage = new MappedByteArrayStorage(memoryMappedFile)
         ) {
             // The array size is set to 2/5 of the segment size.
             // That means that segment can accommodate 2 such arrays, but cannot accommodate the 3rd.

@@ -3,11 +3,7 @@ package org.sharedmq.primitives;
 import org.sharedmq.util.IOUtils;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
 
 /**
  * A storage for byte arrays mapped to a file.<br/>
@@ -27,35 +23,32 @@ public class MappedByteArrayStorage implements Closeable {
     private static final int NextRecordIdOffset = 12;
     private static final int HeaderSize = 20;
 
-    private MemoryMappedFile mappedFile;
+    private final DataFile dataFile;
 
-    public MappedByteArrayStorage(File file) throws IOException {
-        if (file.exists()) {
-            mappedFile = openFile(file, file.length());
+    public MappedByteArrayStorage(DataFile file) throws IOException {
+        dataFile = file;
+        if (file.fileSize() == 0) {
+            createFileHeader();
         } else {
-            mappedFile = createFile(file);
+            checkFileHeader();
         }
     }
 
     @Override
     public void close() throws IOException {
-        IOUtils.close(mappedFile);
+        IOUtils.close(dataFile);
     }
 
-    private static MemoryMappedFile createFile(File file) throws IOException {
-        MemoryMappedFile mappedFile = new MemoryMappedFile(file, (int) HeaderSize);
-        try {
-            mappedFile.putInt(FileMarkerOffset, FileMarker);
-            mappedFile.putInt(SegmentSizeOffset, SegmentSize);
-            mappedFile.putInt(SegmentCountOffset, 0);
-        } catch (Throwable e) {
-            IOUtils.closeOnError(e, mappedFile);
-            throw e;
-        }
-        return mappedFile;
+    private void createFileHeader() throws IOException {
+        dataFile.ensureCapacity(HeaderSize);
+        dataFile.putInt(FileMarkerOffset, FileMarker);
+        dataFile.putInt(SegmentSizeOffset, SegmentSize);
+        dataFile.putInt(SegmentCountOffset, 0);
     }
 
-    private static MemoryMappedFile openFile(File file, long fileSize) throws IOException {
+    private void checkFileHeader() throws IOException {
+
+        long fileSize = dataFile.fileSize();
 
         if (fileSize > MaxFileSize) {
             throw new IOException("The file is too big to be a MappedByteArrayStorage file.");
@@ -64,34 +57,29 @@ public class MappedByteArrayStorage implements Closeable {
             throw new IOException("The file is too short to be a MappedByteArrayStorage file.");
         }
 
-        MemoryMappedFile mappedFile = new MemoryMappedFile(file, (int) fileSize);
-        try {
-            int marker = mappedFile.getInt(FileMarkerOffset);
-            if (marker != FileMarker) {
-                throw new IOException("The file does not contain the MappedByteArrayStorage file marker.");
-            }
+        dataFile.ensureCapacity((int) fileSize);
 
-            int fileSegmentSize = mappedFile.getInt(SegmentSizeOffset);
-            if (SegmentSize != fileSegmentSize) {
-                throw new IOException(
-                        "The MappedByteArrayStorage file has a different segment size (" + fileSegmentSize + ").");
-            }
-
-            int segmentCount = mappedFile.getInt(SegmentCountOffset);
-            if (segmentCount < 0) {
-                throw new IOException(
-                        "The MappedByteArrayStorage file has an invalid segment count (" + segmentCount + ").");
-            }
-
-            long requiredSize = getRequiredSize(segmentCount);
-            if (requiredSize > fileSize) {
-                throw new IOException("The MappedByteArrayStorage file is incomplete.");
-            }
-        } catch (Throwable e) {
-            IOUtils.closeOnError(e, mappedFile);
-            throw e;
+        int marker = dataFile.getInt(FileMarkerOffset);
+        if (marker != FileMarker) {
+            throw new IOException("The file does not contain the MappedByteArrayStorage file marker.");
         }
-        return mappedFile;
+
+        int fileSegmentSize = dataFile.getInt(SegmentSizeOffset);
+        if (SegmentSize != fileSegmentSize) {
+            throw new IOException(
+                    "The MappedByteArrayStorage file has a different segment size (" + fileSegmentSize + ").");
+        }
+
+        int segmentCount = dataFile.getInt(SegmentCountOffset);
+        if (segmentCount < 0) {
+            throw new IOException(
+                    "The MappedByteArrayStorage file has an invalid segment count (" + segmentCount + ").");
+        }
+
+        long requiredSize = getRequiredSize(segmentCount);
+        if (requiredSize > fileSize) {
+            throw new IOException("The MappedByteArrayStorage file is incomplete.");
+        }
     }
 
     public MappedByteArrayStorageKey add(byte[] array) throws IOException {
@@ -110,7 +98,7 @@ public class MappedByteArrayStorage implements Closeable {
 
         int segmentNumber = key.getSegmentNumber();
         MappedByteArrayStorageSegment segment = MappedByteArrayStorageSegment.read(
-                mappedFile,
+                dataFile,
                 segmentNumber,
                 getSegmentOffset(segmentNumber),
                 SegmentSize);
@@ -124,7 +112,7 @@ public class MappedByteArrayStorage implements Closeable {
 
         int segmentNumber = key.getSegmentNumber();
         MappedByteArrayStorageSegment segment = MappedByteArrayStorageSegment.read(
-                mappedFile,
+                dataFile,
                 segmentNumber,
                 getSegmentOffset(segmentNumber),
                 SegmentSize);
@@ -140,7 +128,7 @@ public class MappedByteArrayStorage implements Closeable {
         int segmentCount = getSegmentCount();
         for (int i = 0; i < segmentCount; i++) {
             MappedByteArrayStorageSegment segment = MappedByteArrayStorageSegment.read(
-                    mappedFile,
+                    dataFile,
                     i,
                     getSegmentOffset(i),
                     SegmentSize);
@@ -155,11 +143,11 @@ public class MappedByteArrayStorage implements Closeable {
         int segmentNumber = getSegmentCount();
         ensureBufferCapacity(segmentNumber + 1);
         MappedByteArrayStorageSegment segment = MappedByteArrayStorageSegment.create(
-                mappedFile,
+                dataFile,
                 segmentNumber,
                 getSegmentOffset(segmentNumber),
                 SegmentSize);
-        mappedFile.putInt(SegmentCountOffset, segmentNumber + 1);
+        dataFile.putInt(SegmentCountOffset, segmentNumber + 1);
         return segment;
     }
 
@@ -168,7 +156,7 @@ public class MappedByteArrayStorage implements Closeable {
         if (requiredFileSize > MaxFileSize) {
             throw new IOException("The MappedByteArrayStorage cannot be bigger than " + MaxFileSize + " bytes.");
         }
-        mappedFile.ensureCapacity((int) requiredFileSize);
+        dataFile.ensureCapacity((int) requiredFileSize);
     }
 
     private void checkSegmentKey(MappedByteArrayStorageKey key) {
@@ -190,14 +178,14 @@ public class MappedByteArrayStorage implements Closeable {
     }
 
     private int getSegmentCount() {
-        return mappedFile.getInt(SegmentCountOffset);
+        return dataFile.getInt(SegmentCountOffset);
     }
 
-    private long getNextRecordId() {
+    private long getNextRecordId() throws IOException {
         // Even if we would generate 1000000000 id values per second,
         // it would take 584 years to reach a collision.
-        long recordId = mappedFile.getLong(NextRecordIdOffset);
-        mappedFile.putLong(NextRecordIdOffset, recordId + 1);
+        long recordId = dataFile.getLong(NextRecordIdOffset);
+        dataFile.putLong(NextRecordIdOffset, recordId + 1);
         return recordId;
     }
 }

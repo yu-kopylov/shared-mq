@@ -9,12 +9,13 @@ import java.nio.channels.FileChannel;
 /**
  * A memory-mapped file.
  */
-public class MemoryMappedFile implements DataFile, Closeable {
+public class MemoryMappedFile implements DataFile {
 
     private RandomAccessFile randomAccessFile;
     private FileChannel channel;
     private MappedByteBuffer buffer;
 
+    //todo: remove capacity parameter (it should be always zero)
     public MemoryMappedFile(File file, int capacity) throws IOException {
         try {
             randomAccessFile = new RandomAccessFile(file, "rw");
@@ -33,7 +34,13 @@ public class MemoryMappedFile implements DataFile, Closeable {
         IOUtils.close(channel, randomAccessFile);
     }
 
-    public long capacity() {
+    @Override
+    public long fileSize() throws IOException {
+        return randomAccessFile.length();
+    }
+
+    @Override
+    public int capacity() {
         return buffer.capacity();
     }
 
