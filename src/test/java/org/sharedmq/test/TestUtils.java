@@ -23,13 +23,23 @@ public class TestUtils {
         try {
             action.invoke();
             fail("an exception was expected");
+        } catch (AssertionError e) {
+            throw e;
         } catch (Throwable e) {
             if (!errorClass.isInstance(e)) {
-                throw new AssertionError("Expected '" + errorClass.getName() + "'" + "" +
+                throw new AssertionError("Expected '" + errorClass.getName() + "'" +
                         ", but encountered '" + e.getClass().getName() + "'."
                         , e);
             }
-            assertThat(e.getMessage(), containsString(expectedMessagePart));
+            if (expectedMessagePart != null) {
+                String message = e.getMessage();
+                if (message == null || !message.contains(expectedMessagePart)) {
+                    throw new AssertionError("Expected an exception" +
+                            " with the message '..." + expectedMessagePart + "...'" +
+                            ", but encountered '" + e.getMessage() + "'."
+                            , e);
+                }
+            }
         }
     }
 

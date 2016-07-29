@@ -1,8 +1,10 @@
 package org.sharedmq;
 
 import com.google.common.base.Stopwatch;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.mockito.Mockito;
 import org.sharedmq.internals.QueueParametersValidator;
 import org.sharedmq.internals.QueueParametersValidatorTest;
 import org.sharedmq.internals.SharedQueueMessage;
@@ -15,8 +17,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.sharedmq.test.TestUtils.assertThrows;
 
 @Category(CommonTests.class)
@@ -571,6 +572,87 @@ public class SharedMessageQueueTest {
             assertEquals(3, message4.getHeader().getMessageId());
             assertEquals(4, message5.getHeader().getMessageId());
             assertEquals(5, message6.getHeader().getMessageId());
+        }
+    }
+
+    @Test
+    public void testPushRollback() throws InterruptedException, IOException {
+        try (
+                TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testPushRollback");
+                SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                SharedMessageQueue queue = spy(realQueue)
+        ) {
+            // 1st call is in cleanupQueue
+            // 2nd call is in push
+            doCallRealMethod().doThrow(RuntimeException.class).when(queue).commit();
+
+            assertThrows(RuntimeException.class, null, () -> queue.push(0, "Test Message"));
+
+            doCallRealMethod().when(queue).commit();
+
+            assertNull(queue.pull(0));
+            assertEquals(queue.size(), 0);
+        }
+    }
+
+    @Test
+    public void testPullRollback() throws InterruptedException, IOException {
+        try (
+                TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testPullRollback");
+                SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                SharedMessageQueue queue = spy(realQueue)
+        ) {
+            queue.push(0, "Test Message");
+
+            // 1st call is in cleanupQueue
+            // 2nd call is in pollMessage
+            doCallRealMethod().doThrow(RuntimeException.class).when(queue).commit();
+
+            assertThrows(RuntimeException.class, null, () -> queue.pull(0));
+
+            doCallRealMethod().when(queue).commit();
+
+            Message message = queue.pull(0);
+            assertNotNull(message);
+            assertEquals("Test Message", message.asString());
+        }
+    }
+
+    @Test
+    public void testDeleteRollback() throws InterruptedException, IOException {
+        try (
+                TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testDeleteRollback");
+                SharedMessageQueue realQueue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod);
+                SharedMessageQueue queue = spy(realQueue)
+        ) {
+            queue.push(0, "Test Message");
+
+            Message message1 = queue.pull(0);
+            assertNotNull(message1);
+            assertEquals("Test Message", message1.asString());
+
+            // 1st call is in cleanupQueue
+            // 2nd call is in pollMessage
+            doCallRealMethod().doThrow(RuntimeException.class).when(queue).commit();
+
+            assertThrows(RuntimeException.class, null, () -> queue.delete(message1));
+
+            doCallRealMethod().when(queue).commit();
+
+            assertEquals(1, queue.size());
+
+            setTimeShift(queue, VisibilityTimeout + 10);
+
+            Message message2 = queue.pull(0);
+            assertNotNull(message2);
+            assertEquals("Test Message", message2.asString());
+
+            queue.delete(message1);
+
+            setTimeShift(queue, 2 * VisibilityTimeout + 20);
+
+            assertNull(queue.pull(0));
+            assertEquals(queue.size(), 0);
         }
     }
 

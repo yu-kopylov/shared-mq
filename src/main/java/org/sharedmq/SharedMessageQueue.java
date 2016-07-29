@@ -259,7 +259,7 @@ public class SharedMessageQueue implements Closeable {
                 headers.set(messageNumber, header);
             }
 
-            rollbackJournal.commit();
+            commit();
         }
     }
 
@@ -331,7 +331,7 @@ public class SharedMessageQueue implements Closeable {
             }
             deleteMessage(currentHeader);
 
-            rollbackJournal.commit();
+            commit();
         }
     }
 
@@ -381,7 +381,7 @@ public class SharedMessageQueue implements Closeable {
 
                 deletedMessagesTotal += deletedMessages;
 
-                rollbackJournal.commit();
+                commit();
             }
         }
 
@@ -402,6 +402,10 @@ public class SharedMessageQueue implements Closeable {
             IOUtils.closeOnError(e, lock);
         }
         return lock;
+    }
+
+    void commit() {
+        rollbackJournal.commit();
     }
 
     private void waitForMessage(long timeout) throws InterruptedException {
@@ -494,7 +498,7 @@ public class SharedMessageQueue implements Closeable {
             byte[] bodyBytes = messageContents.get(header.getBodyKey());
             String body = new String(bodyBytes, encoding);
 
-            rollbackJournal.commit();
+            commit();
 
             return new SharedQueueMessage(rootFolder, header, body);
         }
