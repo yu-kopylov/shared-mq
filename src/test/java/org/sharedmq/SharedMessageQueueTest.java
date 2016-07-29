@@ -462,7 +462,7 @@ public class SharedMessageQueueTest {
 
             assertThrows(
                     IOException.class,
-                    "file is too short to be a MappedArrayList file",
+                    "file does not contain the MappedArrayList file marker",
                     () -> SharedMessageQueue.openQueue(queueFolder));
 
             // Sanity check: files are still there and not modified

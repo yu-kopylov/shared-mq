@@ -23,8 +23,12 @@ public class TestUtils {
         try {
             action.invoke();
             fail("an exception was expected");
-        } catch (Exception e) {
-            assertThat(e, instanceOf(errorClass));
+        } catch (Throwable e) {
+            if (!errorClass.isInstance(e)) {
+                throw new AssertionError("Expected '" + errorClass.getName() + "'" + "" +
+                        ", but encountered '" + e.getClass().getName() + "'."
+                        , e);
+            }
             assertThat(e.getMessage(), containsString(expectedMessagePart));
         }
     }

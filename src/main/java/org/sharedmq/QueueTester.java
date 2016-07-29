@@ -49,6 +49,10 @@ public class QueueTester {
             }
         }));
 
+        System.out.println("******************************************");
+        System.out.println("*** Press Ctrl-C to stop queue-tester. ***");
+        System.out.println("******************************************");
+
         String mode = args[0];
         switch (mode) {
             case SendMode:

@@ -32,6 +32,11 @@ public class SharedMessageQueue implements Closeable {
     static final String PriorityQueueFilename = "priority-queue.dat";
     private static final String MessageContentsFilename = "content.dat";
 
+    private static final int MessageHeadersFileId = 10;
+    private static final int FreeHeadersFileId = 20;
+    private static final int PriorityQueueFileId = 30;
+    private static final int MessageContentsFileId = 40;
+
     /**
      * The number of messages deleted within one lock.<br/>
      * It should be small enough for cleanup iteration not to exceed the maximum lock duration.<br/>
@@ -85,35 +90,50 @@ public class SharedMessageQueue implements Closeable {
 
         config = configFile.getConfiguration();
 
-        //todo: closing individual files would not be necessary after rollback journal is added
-        MemoryMappedFile priorityQueueFile = null;
-
         try {
             rollbackJournal = new RollbackJournal(new File(rootFolder, RollbackJournalFilename));
 
-            //todo: use protected file
+            ProtectedFile messageHeadersFile = rollbackJournal.openFile(
+                    MessageHeadersFileId,
+                    new File(rootFolder, MessageHeadersFilename));
+
+            ProtectedFile FreeHeadersFile = rollbackJournal.openFile(
+                    FreeHeadersFileId,
+                    new File(rootFolder, FreeHeadersFilename));
+
+            ProtectedFile priorityQueueFile = rollbackJournal.openFile(
+                    PriorityQueueFileId,
+                    new File(rootFolder, PriorityQueueFilename));
+
+            ProtectedFile messageContentsFile = rollbackJournal.openFile(
+                    MessageContentsFileId,
+                    new File(rootFolder, MessageContentsFilename));
+
+            // This constructor is always called within a lock.
+            // So we can assume that the previous operation is either committed or broken.
+            rollbackJournal.rollback();
+
             headers = new MappedArrayList<>(
-                    new MemoryMappedFile(new File(rootFolder, MessageHeadersFilename), 0),
+                    messageHeadersFile,
                     MessageHeaderStorageAdapter.getInstance());
 
-            //todo: use protected file
             freeHeaders = new MappedArrayList<>(
-                    new MemoryMappedFile(new File(rootFolder, FreeHeadersFilename), 0),
+                    FreeHeadersFile,
                     IntegerStorageAdapter.getInstance());
 
-            //todo: use protected file
-            priorityQueueFile = new MemoryMappedFile(new File(rootFolder, PriorityQueueFilename), 0);
             priorityQueue = new MappedHeap<>(
                     priorityQueueFile,
                     PriorityQueueRecordStorageAdapter.getInstance(),
                     PriorityQueueRecord::compareVisibility);
 
-            //todo: use protected file
-            messageContents = new MappedByteArrayStorage(new MemoryMappedFile(new File(rootFolder, MessageContentsFilename), 0));
+            messageContents = new MappedByteArrayStorage(
+                    messageContentsFile);
+
+            rollbackJournal.commit();
 
             priorityQueue.register(this::updateHeapIndex);
         } catch (Throwable e) {
-            IOUtils.closeOnError(e, headers, freeHeaders, priorityQueue, messageContents, priorityQueueFile, rollbackJournal);
+            IOUtils.closeOnError(e, headers, freeHeaders, priorityQueue, messageContents, rollbackJournal);
             throw e;
         }
     }
@@ -209,7 +229,7 @@ public class SharedMessageQueue implements Closeable {
 
         cleanupQueue();
 
-        try (MappedByteBufferLock lock = configFile.acquireLock()) {
+        try (MappedByteBufferLock lock = acquireLock()) {
 
             long messageId = configFile.getNextMessageId();
 
@@ -238,6 +258,8 @@ public class SharedMessageQueue implements Closeable {
             } else {
                 headers.set(messageNumber, header);
             }
+
+            rollbackJournal.commit();
         }
     }
 
@@ -295,7 +317,7 @@ public class SharedMessageQueue implements Closeable {
                             "Message Folder: '" + queueMessage.getQueueFolder() + "').");
         }
 
-        try (MappedByteBufferLock lock = configFile.acquireLock()) {
+        try (MappedByteBufferLock lock = acquireLock()) {
 
             int messageNumber = queueMessage.getHeader().getMessageNumber();
             if (messageNumber >= headers.size()) {
@@ -308,6 +330,8 @@ public class SharedMessageQueue implements Closeable {
                 return;
             }
             deleteMessage(currentHeader);
+
+            rollbackJournal.commit();
         }
     }
 
@@ -319,7 +343,7 @@ public class SharedMessageQueue implements Closeable {
 
         cleanupQueue();
 
-        try (MappedByteBufferLock lock = configFile.acquireLock()) {
+        try (MappedByteBufferLock lock = acquireLock()) {
             return priorityQueue.size();
         }
     }
@@ -339,7 +363,7 @@ public class SharedMessageQueue implements Closeable {
             shouldCleanup = false;
             int deletedMessages = 0;
 
-            try (MappedByteBufferLock lock = configFile.acquireLock()) {
+            try (MappedByteBufferLock lock = acquireLock()) {
 
                 long now = getTime();
 
@@ -356,6 +380,8 @@ public class SharedMessageQueue implements Closeable {
                 }
 
                 deletedMessagesTotal += deletedMessages;
+
+                rollbackJournal.commit();
             }
         }
 
@@ -365,6 +391,17 @@ public class SharedMessageQueue implements Closeable {
                     " removed " + deletedMessagesTotal + " messages" +
                     " within " + timeSpent + "ms.");
         }
+    }
+
+    private MappedByteBufferLock acquireLock() throws InterruptedException, IOException {
+        MappedByteBufferLock lock = configFile.acquireLock();
+        // after we acquire the lock, we first rollback the previous operation if it was not committed
+        try {
+            rollbackJournal.rollback();
+        } catch (Throwable e) {
+            IOUtils.closeOnError(e, lock);
+        }
+        return lock;
     }
 
     private void waitForMessage(long timeout) throws InterruptedException {
@@ -407,7 +444,7 @@ public class SharedMessageQueue implements Closeable {
         // We do not want to miss that moment.
 
         PriorityQueueRecord nextRecord;
-        try (MappedByteBufferLock lock = configFile.acquireLock()) {
+        try (MappedByteBufferLock lock = acquireLock()) {
             nextRecord = priorityQueue.peek();
         }
         if (nextRecord == null) {
@@ -427,7 +464,7 @@ public class SharedMessageQueue implements Closeable {
 
         cleanupQueue();
 
-        try (MappedByteBufferLock lock = configFile.acquireLock()) {
+        try (MappedByteBufferLock lock = acquireLock()) {
 
             MessageHeader header = peekNextMessageHeader();
 
@@ -456,6 +493,8 @@ public class SharedMessageQueue implements Closeable {
 
             byte[] bodyBytes = messageContents.get(header.getBodyKey());
             String body = new String(bodyBytes, encoding);
+
+            rollbackJournal.commit();
 
             return new SharedQueueMessage(rootFolder, header, body);
         }

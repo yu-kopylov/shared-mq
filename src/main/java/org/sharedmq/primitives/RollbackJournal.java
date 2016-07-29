@@ -5,7 +5,9 @@ import org.sharedmq.util.IOUtils;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * A rollback journal for memory-mapped files.
@@ -57,7 +59,7 @@ public class RollbackJournal implements Closeable {
             throw new IOException("The file is too short to be a RollbackJournal file.");
         }
 
-        MemoryMappedFile mappedFile = new MemoryMappedFile(file, HeaderSize);
+        MemoryMappedFile mappedFile = new MemoryMappedFile(file, (int) fileSize);
 
         try {
             int fileMarker = mappedFile.getInt(FileMarkerOffset);
@@ -107,6 +109,7 @@ public class RollbackJournal implements Closeable {
             mappedFile.readBytes(journalDataOffset, buffer, 0, dataLength);
 
             ProtectedFile protectedFile = protectedFiles.get(fileId);
+            protectedFile.getUnprotected().ensureCapacity(dataOffset + dataLength);
             protectedFile.getUnprotected().writeBytes(dataOffset, buffer, 0, dataLength);
 
             journalSize = journalDataOffset - HeaderSize;
@@ -135,7 +138,9 @@ public class RollbackJournal implements Closeable {
 
     @Override
     public void close() throws IOException {
-        //todo: close individual files?
-        IOUtils.close(mappedFile);
+        List<AutoCloseable> resources = new ArrayList<>();
+        resources.addAll(protectedFiles.values());
+        resources.add(mappedFile);
+        IOUtils.close(resources);
     }
 }
