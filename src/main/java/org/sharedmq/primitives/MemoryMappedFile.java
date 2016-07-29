@@ -35,7 +35,7 @@ public class MemoryMappedFile implements DataFile {
     }
 
     @Override
-    public long fileSize() throws IOException {
+    public long length() throws IOException {
         return randomAccessFile.length();
     }
 

@@ -20,10 +20,13 @@ public class MappedArrayListTest {
                 TestFolder testFolder = new TestFolder("MappedArrayListTest", "testSmoke");
         ) {
             try (
+                    MemoryMappedFile memoryMappedFile1 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+                    MemoryMappedFile memoryMappedFile2 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+
                     MappedArrayList<Long> mappedArrayList1 =
-                            new MappedArrayList<>(testFolder.getFile("test.dat"), LongStorageAdapter.getInstance());
+                            new MappedArrayList<>(memoryMappedFile1, LongStorageAdapter.getInstance());
                     MappedArrayList<Long> mappedArrayList2 =
-                            new MappedArrayList<>(testFolder.getFile("test.dat"), LongStorageAdapter.getInstance())
+                            new MappedArrayList<>(memoryMappedFile2, LongStorageAdapter.getInstance())
             ) {
                 assertEquals(0, mappedArrayList1.size());
                 assertEquals(0, mappedArrayList2.size());
@@ -52,10 +55,13 @@ public class MappedArrayListTest {
             // close both lists and open them again
 
             try (
+                    MemoryMappedFile memoryMappedFile1 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+                    MemoryMappedFile memoryMappedFile2 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+
                     MappedArrayList<Long> mappedArrayList1 =
-                            new MappedArrayList<>(testFolder.getFile("test.dat"), LongStorageAdapter.getInstance());
+                            new MappedArrayList<>(memoryMappedFile1, LongStorageAdapter.getInstance());
                     MappedArrayList<Long> mappedArrayList2 =
-                            new MappedArrayList<>(testFolder.getFile("test.dat"), LongStorageAdapter.getInstance())
+                            new MappedArrayList<>(memoryMappedFile2, LongStorageAdapter.getInstance())
             ) {
                 assertEquals(20000, mappedArrayList1.size());
                 assertEquals(20000, mappedArrayList2.size());
@@ -84,10 +90,14 @@ public class MappedArrayListTest {
     public void testRemoveLast() throws IOException {
         try (
                 TestFolder testFolder = new TestFolder("MappedArrayListTest", "testRemoveLast");
+
+                MemoryMappedFile memoryMappedFile1 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+                MemoryMappedFile memoryMappedFile2 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+
                 MappedArrayList<Long> mappedArrayList1 =
-                        new MappedArrayList<>(testFolder.getFile("test.dat"), LongStorageAdapter.getInstance());
+                        new MappedArrayList<>(memoryMappedFile1, LongStorageAdapter.getInstance());
                 MappedArrayList<Long> mappedArrayList2 =
-                        new MappedArrayList<>(testFolder.getFile("test.dat"), LongStorageAdapter.getInstance())
+                        new MappedArrayList<>(memoryMappedFile2, LongStorageAdapter.getInstance())
         ) {
             assertEquals(0, mappedArrayList1.size());
             assertEquals(0, mappedArrayList2.size());

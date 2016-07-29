@@ -3,7 +3,6 @@ package org.sharedmq.primitives;
 import org.sharedmq.util.IOUtils;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 
 /**
@@ -25,40 +24,36 @@ public class MappedArrayList<TRecord> implements Closeable {
 
     private final StorageAdapter<TRecord> adapter;
     private final int recordSize;
-    private final MemoryMappedFile mappedFile;
+    private final DataFile dataFile;
 
-    public MappedArrayList(File file, StorageAdapter<TRecord> adapter) throws IOException {
+    public MappedArrayList(DataFile dataFile, StorageAdapter<TRecord> adapter) throws IOException {
 
+        this.dataFile = dataFile;
         this.adapter = adapter;
-
         recordSize = adapter.getRecordSize();
 
-        if (file.exists()) {
-            mappedFile = openFile(file, file.length(), recordSize);
+        if (dataFile.length() == 0) {
+            createFileHeader();
         } else {
-            mappedFile = createFile(file, recordSize);
+            checkFileHeader();
         }
     }
 
     @Override
     public void close() throws IOException {
-        IOUtils.close(mappedFile);
+        IOUtils.close(dataFile);
     }
 
-    private static MemoryMappedFile createFile(File file, int recordSize) throws IOException {
-        MemoryMappedFile mappedFile = new MemoryMappedFile(file, AllocationUnit);
-        try {
-            mappedFile.putInt(FileMarkerOffset, FileMarker);
-            mappedFile.putInt(RecordSizeOffset, recordSize);
-            mappedFile.putInt(RecordCountOffset, 0);
-        } catch (Throwable e) {
-            IOUtils.closeOnError(e, mappedFile);
-            throw e;
-        }
-        return mappedFile;
+    private void createFileHeader() throws IOException {
+        dataFile.ensureCapacity(AllocationUnit);
+        dataFile.putInt(FileMarkerOffset, FileMarker);
+        dataFile.putInt(RecordSizeOffset, recordSize);
+        dataFile.putInt(RecordCountOffset, 0);
     }
 
-    private static MemoryMappedFile openFile(File file, long fileSize, int recordSize) throws IOException {
+    private void checkFileHeader() throws IOException {
+
+        long fileSize = dataFile.length();
 
         if (fileSize > MaxFileSize) {
             throw new IOException("The file is too big to be a MappedArrayList file.");
@@ -67,38 +62,31 @@ public class MappedArrayList<TRecord> implements Closeable {
             throw new IOException("The file is too short to be a MappedArrayList file.");
         }
 
-        MemoryMappedFile mappedFile = new MemoryMappedFile(file, (int) fileSize);
+        dataFile.ensureCapacity((int) fileSize);
 
-        try {
-            int marker = mappedFile.getInt(FileMarkerOffset);
-            if (marker != FileMarker) {
-                throw new IOException("The file does not contain the MappedArrayList file marker.");
-            }
-
-            int fileRecordSize = mappedFile.getInt(RecordSizeOffset);
-            if (recordSize != fileRecordSize) {
-                throw new IOException("The MappedArrayList file has a different record size (" + recordSize + ").");
-            }
-
-            int recordCount = mappedFile.getInt(RecordCountOffset);
-            if (recordCount < 0) {
-                throw new IOException("The MappedArrayList file has an invalid record count (" + recordCount + ").");
-            }
-
-            long requiredSize = getRequiredSize(recordSize, recordCount);
-            if (requiredSize > fileSize) {
-                throw new IOException("The MappedArrayList file is incomplete.");
-            }
-        } catch (Throwable e) {
-            IOUtils.closeOnError(e, mappedFile);
-            throw e;
+        int marker = dataFile.getInt(FileMarkerOffset);
+        if (marker != FileMarker) {
+            throw new IOException("The file does not contain the MappedArrayList file marker.");
         }
 
-        return mappedFile;
+        int fileRecordSize = dataFile.getInt(RecordSizeOffset);
+        if (recordSize != fileRecordSize) {
+            throw new IOException("The MappedArrayList file has a different record size (" + recordSize + ").");
+        }
+
+        int recordCount = dataFile.getInt(RecordCountOffset);
+        if (recordCount < 0) {
+            throw new IOException("The MappedArrayList file has an invalid record count (" + recordCount + ").");
+        }
+
+        long requiredSize = getRequiredSize(recordSize, recordCount);
+        if (requiredSize > fileSize) {
+            throw new IOException("The MappedArrayList file is incomplete.");
+        }
     }
 
     public int size() {
-        return mappedFile.getInt(RecordCountOffset);
+        return dataFile.getInt(RecordCountOffset);
     }
 
     public void add(TRecord value) throws IOException {
@@ -109,9 +97,9 @@ public class MappedArrayList<TRecord> implements Closeable {
         ensureBufferCapacity(recordCount);
 
         int recordOffset = getRecordOffset(recordSize, recordIndex);
-        mappedFile.put(recordOffset, value, adapter);
+        dataFile.put(recordOffset, value, adapter);
 
-        mappedFile.putInt(RecordCountOffset, recordCount);
+        dataFile.putInt(RecordCountOffset, recordCount);
     }
 
     public TRecord get(int recordIndex) throws IOException {
@@ -121,7 +109,7 @@ public class MappedArrayList<TRecord> implements Closeable {
         // Array size could have been changed by other array instance.
         ensureBufferCapacity(size());
         int recordOffset = getRecordOffset(recordSize, recordIndex);
-        return mappedFile.get(recordOffset, adapter);
+        return dataFile.get(recordOffset, adapter);
     }
 
     public void set(int recordIndex, TRecord value) throws IOException {
@@ -131,7 +119,7 @@ public class MappedArrayList<TRecord> implements Closeable {
         // Array size could have been changed by other array instance.
         ensureBufferCapacity(size());
         int recordOffset = getRecordOffset(recordSize, recordIndex);
-        mappedFile.put(recordOffset, value, adapter);
+        dataFile.put(recordOffset, value, adapter);
     }
 
     public TRecord removeLast() throws IOException {
@@ -148,14 +136,14 @@ public class MappedArrayList<TRecord> implements Closeable {
         int recordIndex = recordCount - 1;
 
         int recordOffset = getRecordOffset(recordSize, recordIndex);
-        TRecord record = mappedFile.get(recordOffset, adapter);
+        TRecord record = dataFile.get(recordOffset, adapter);
 
-        mappedFile.putInt(RecordCountOffset, recordIndex);
+        dataFile.putInt(RecordCountOffset, recordIndex);
         return record;
     }
 
-    public void clear() {
-        mappedFile.putInt(RecordCountOffset, 0);
+    public void clear() throws IOException {
+        dataFile.putInt(RecordCountOffset, 0);
     }
 
     private void checkRecordIndex(int recordIndex) {
@@ -174,11 +162,11 @@ public class MappedArrayList<TRecord> implements Closeable {
             throw new IOException("The MappedByteArrayStorage cannot be bigger than " + MaxFileSize + " bytes.");
         }
 
-        if (requiredFileSize > mappedFile.capacity()) {
+        if (requiredFileSize > dataFile.capacity()) {
             // division with rounding up
             int unitsCount = (int) ((requiredFileSize + AllocationUnit - 1) / AllocationUnit);
             int fileSize = unitsCount * AllocationUnit;
-            mappedFile.ensureCapacity(fileSize);
+            dataFile.ensureCapacity(fileSize);
         }
     }
 

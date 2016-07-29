@@ -9,7 +9,7 @@ import java.io.IOException;
 public interface DataFile extends Closeable {
 
     //todo: describe
-    long fileSize() throws IOException;
+    long length() throws IOException;
 
     //todo: describe
     int capacity();

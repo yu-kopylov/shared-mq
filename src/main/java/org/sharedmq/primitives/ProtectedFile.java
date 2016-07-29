@@ -23,8 +23,8 @@ public class ProtectedFile implements DataFile {
     }
 
     @Override
-    public long fileSize() throws IOException {
-        return mappedFile.fileSize();
+    public long length() throws IOException {
+        return mappedFile.length();
     }
 
     @Override

@@ -85,19 +85,26 @@ public class SharedMessageQueue implements Closeable {
 
         config = configFile.getConfiguration();
 
+        //todo: closing individual files would not be necessary after rollback journal is added
+        MemoryMappedFile priorityQueueFile = null;
+
         try {
             rollbackJournal = new RollbackJournal(new File(rootFolder, RollbackJournalFilename));
 
+            //todo: use protected file
             headers = new MappedArrayList<>(
-                    new File(rootFolder, MessageHeadersFilename),
+                    new MemoryMappedFile(new File(rootFolder, MessageHeadersFilename), 0),
                     MessageHeaderStorageAdapter.getInstance());
 
+            //todo: use protected file
             freeHeaders = new MappedArrayList<>(
-                    new File(rootFolder, FreeHeadersFilename),
+                    new MemoryMappedFile(new File(rootFolder, FreeHeadersFilename), 0),
                     IntegerStorageAdapter.getInstance());
 
+            //todo: use protected file
+            priorityQueueFile = new MemoryMappedFile(new File(rootFolder, PriorityQueueFilename), 0);
             priorityQueue = new MappedHeap<>(
-                    new File(rootFolder, PriorityQueueFilename),
+                    priorityQueueFile,
                     PriorityQueueRecordStorageAdapter.getInstance(),
                     PriorityQueueRecord::compareVisibility);
 
@@ -106,7 +113,7 @@ public class SharedMessageQueue implements Closeable {
 
             priorityQueue.register(this::updateHeapIndex);
         } catch (Throwable e) {
-            IOUtils.closeOnError(e, headers, freeHeaders, priorityQueue, messageContents, rollbackJournal);
+            IOUtils.closeOnError(e, headers, freeHeaders, priorityQueue, messageContents, priorityQueueFile, rollbackJournal);
             throw e;
         }
     }

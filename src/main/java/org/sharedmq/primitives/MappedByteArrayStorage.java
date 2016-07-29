@@ -27,7 +27,7 @@ public class MappedByteArrayStorage implements Closeable {
 
     public MappedByteArrayStorage(DataFile file) throws IOException {
         dataFile = file;
-        if (file.fileSize() == 0) {
+        if (file.length() == 0) {
             createFileHeader();
         } else {
             checkFileHeader();
@@ -48,7 +48,7 @@ public class MappedByteArrayStorage implements Closeable {
 
     private void checkFileHeader() throws IOException {
 
-        long fileSize = dataFile.fileSize();
+        long fileSize = dataFile.length();
 
         if (fileSize > MaxFileSize) {
             throw new IOException("The file is too big to be a MappedByteArrayStorage file.");

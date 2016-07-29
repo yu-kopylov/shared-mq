@@ -20,9 +20,8 @@ public class MappedHeap<TRecord> implements Closeable {
     private MappedArrayList<TRecord> list;
     private final Comparator<TRecord> comparator;
 
-
-    public MappedHeap(File file, StorageAdapter<TRecord> adapter, Comparator<TRecord> comparator) throws IOException {
-        this.list = new MappedArrayList<>(file, adapter);
+    public MappedHeap(DataFile dataFile, StorageAdapter<TRecord> adapter, Comparator<TRecord> comparator) throws IOException {
+        this.list = new MappedArrayList<>(dataFile, adapter);
         this.comparator = comparator;
     }
 
@@ -35,7 +34,7 @@ public class MappedHeap<TRecord> implements Closeable {
         eventListeners.add(listener);
     }
 
-    public void clear() {
+    public void clear() throws IOException {
         list.clear();
     }
 
