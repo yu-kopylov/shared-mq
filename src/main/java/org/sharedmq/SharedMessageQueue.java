@@ -229,6 +229,8 @@ public class SharedMessageQueue implements Closeable {
 
         cleanupQueue();
 
+        final byte[] messageBytes = message.getBytes(encoding);
+
         try (MappedByteBufferLock lock = acquireLock()) {
 
             long messageId = configFile.getNextMessageId();
@@ -251,7 +253,7 @@ public class SharedMessageQueue implements Closeable {
             PriorityQueueRecord heapRecord = new PriorityQueueRecord(messageNumber, visibleSince);
             header.setHeapIndex(priorityQueue.add(heapRecord));
 
-            header.setBodyKey(messageContents.add(message.getBytes(encoding)));
+            header.setBodyKey(messageContents.add(messageBytes));
 
             if (messageNumber >= headers.size()) {
                 headers.add(header);
