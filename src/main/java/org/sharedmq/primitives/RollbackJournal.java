@@ -37,9 +37,10 @@ public class RollbackJournal implements Closeable {
     }
 
     private MemoryMappedFile createJournal(File file) throws IOException {
-        MemoryMappedFile mappedFile = new MemoryMappedFile(file, HeaderSize);
+        MemoryMappedFile mappedFile = new MemoryMappedFile(file);
 
         try {
+            mappedFile.ensureCapacity(HeaderSize);
             mappedFile.putInt(FileMarkerOffset, FileMarker);
             mappedFile.putInt(JournalSizeOffset, 0);
         } catch (Throwable e) {
@@ -59,9 +60,10 @@ public class RollbackJournal implements Closeable {
             throw new IOException("The file is too short to be a RollbackJournal file.");
         }
 
-        MemoryMappedFile mappedFile = new MemoryMappedFile(file, (int) fileSize);
+        MemoryMappedFile mappedFile = new MemoryMappedFile(file);
 
         try {
+            mappedFile.ensureCapacity((int) fileSize);
             int fileMarker = mappedFile.getInt(FileMarkerOffset);
             if (fileMarker != FileMarker) {
                 throw new IOException("The file does not contain the RollbackJournal file marker.");
@@ -82,7 +84,7 @@ public class RollbackJournal implements Closeable {
         if (protectedFiles.containsKey(fileId)) {
             throw new IOException("The file with id " + fileId + " already registered within the RollbackJournal.");
         }
-        MemoryMappedFile mappedFile = new MemoryMappedFile(file, 0);
+        MemoryMappedFile mappedFile = new MemoryMappedFile(file);
         ProtectedFile protectedFile = new ProtectedFile(this, fileId, mappedFile);
         protectedFiles.put(fileId, protectedFile);
         return protectedFile;

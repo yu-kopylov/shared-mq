@@ -20,8 +20,8 @@ public class MappedArrayListTest {
                 TestFolder testFolder = new TestFolder("MappedArrayListTest", "testSmoke");
         ) {
             try (
-                    MemoryMappedFile memoryMappedFile1 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
-                    MemoryMappedFile memoryMappedFile2 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+                    MemoryMappedFile memoryMappedFile1 = new MemoryMappedFile(testFolder.getFile("test.dat"));
+                    MemoryMappedFile memoryMappedFile2 = new MemoryMappedFile(testFolder.getFile("test.dat"));
 
                     MappedArrayList<Long> mappedArrayList1 =
                             new MappedArrayList<>(memoryMappedFile1, LongStorageAdapter.getInstance());
@@ -55,8 +55,8 @@ public class MappedArrayListTest {
             // close both lists and open them again
 
             try (
-                    MemoryMappedFile memoryMappedFile1 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
-                    MemoryMappedFile memoryMappedFile2 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+                    MemoryMappedFile memoryMappedFile1 = new MemoryMappedFile(testFolder.getFile("test.dat"));
+                    MemoryMappedFile memoryMappedFile2 = new MemoryMappedFile(testFolder.getFile("test.dat"));
 
                     MappedArrayList<Long> mappedArrayList1 =
                             new MappedArrayList<>(memoryMappedFile1, LongStorageAdapter.getInstance());
@@ -91,8 +91,8 @@ public class MappedArrayListTest {
         try (
                 TestFolder testFolder = new TestFolder("MappedArrayListTest", "testRemoveLast");
 
-                MemoryMappedFile memoryMappedFile1 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
-                MemoryMappedFile memoryMappedFile2 = new MemoryMappedFile(testFolder.getFile("test.dat"), 0);
+                MemoryMappedFile memoryMappedFile1 = new MemoryMappedFile(testFolder.getFile("test.dat"));
+                MemoryMappedFile memoryMappedFile2 = new MemoryMappedFile(testFolder.getFile("test.dat"));
 
                 MappedArrayList<Long> mappedArrayList1 =
                         new MappedArrayList<>(memoryMappedFile1, LongStorageAdapter.getInstance());

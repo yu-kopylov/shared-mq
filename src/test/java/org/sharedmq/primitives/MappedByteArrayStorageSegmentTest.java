@@ -28,8 +28,10 @@ public class MappedByteArrayStorageSegmentTest {
 
         try (
                 TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testMaxSizeArray");
-                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), segmentSize + 1)
+                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"))
         ) {
+            mappedFile.ensureCapacity(segmentSize + 1);
+
             // testing the segment with the minimum and maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {
                 MappedByteArrayStorageSegment segment
@@ -77,8 +79,10 @@ public class MappedByteArrayStorageSegmentTest {
 
         try (
                 TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testGarbageCollection");
-                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), segmentSize + 1)
+                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"))
         ) {
+            mappedFile.ensureCapacity(segmentSize + 1);
+
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset <= 1; segmentOffset++) {
                 MappedByteArrayStorageSegment segment
@@ -151,8 +155,10 @@ public class MappedByteArrayStorageSegmentTest {
 
         try (
                 TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testFreeRecordsHeap");
-                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), segmentSize + 1)
+                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"))
         ) {
+            mappedFile.ensureCapacity(segmentSize + 1);
+
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {
                 MappedByteArrayStorageSegment segment
@@ -267,8 +273,10 @@ public class MappedByteArrayStorageSegmentTest {
 
         try (
                 TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testRecordIdCheck");
-                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), segmentSize + 1)
+                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"))
         ) {
+            mappedFile.ensureCapacity(segmentSize + 1);
+
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {
                 MappedByteArrayStorageSegment segment
@@ -306,8 +314,10 @@ public class MappedByteArrayStorageSegmentTest {
 
         try (
                 TestFolder testFolder = new TestFolder("MappedByteArrayStorageSegmentTest", "testRead");
-                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), segmentSize + 1)
+                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"))
         ) {
+            mappedFile.ensureCapacity(segmentSize + 1);
+
             // testing the segment with the minimum and the maximum possible offsets within the buffer
             for (int segmentOffset = 0; segmentOffset < 2; segmentOffset++) {
                 MappedByteArrayStorageSegment segment1

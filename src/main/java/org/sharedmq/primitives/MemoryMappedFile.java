@@ -15,12 +15,11 @@ public class MemoryMappedFile implements DataFile {
     private FileChannel channel;
     private MappedByteBuffer buffer;
 
-    //todo: remove capacity parameter (it should be always zero)
-    public MemoryMappedFile(File file, int capacity) throws IOException {
+    public MemoryMappedFile(File file) throws IOException {
         try {
             randomAccessFile = new RandomAccessFile(file, "rw");
             channel = randomAccessFile.getChannel();
-            buffer = channel.map(FileChannel.MapMode.READ_WRITE, 0, capacity);
+            buffer = channel.map(FileChannel.MapMode.READ_WRITE, 0, 0);
         } catch (Throwable e) {
             buffer = null;
             IOUtils.closeOnError(e, channel, randomAccessFile);

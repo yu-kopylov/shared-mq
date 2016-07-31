@@ -23,7 +23,7 @@ public class MappedHeapTest {
             // ascending order
             try (
                     MappedHeap<Long> heap = new MappedHeap<>(
-                            new MemoryMappedFile(testFolder.getFile("test-asc.dat"), 0),
+                            new MemoryMappedFile(testFolder.getFile("test-asc.dat")),
                             LongStorageAdapter.getInstance(),
                             Long::compare)
             ) {
@@ -42,7 +42,7 @@ public class MappedHeapTest {
             // descending order
             try (
                     MappedHeap<Long> heap = new MappedHeap<>(
-                            new MemoryMappedFile(testFolder.getFile("test-desc.dat"), 0),
+                            new MemoryMappedFile(testFolder.getFile("test-desc.dat")),
                             LongStorageAdapter.getInstance(),
                             Long::compare)
             ) {
@@ -62,7 +62,7 @@ public class MappedHeapTest {
             // random order
             try (
                     MappedHeap<Long> heap = new MappedHeap<>(
-                            new MemoryMappedFile(testFolder.getFile("test-random.dat"), 0),
+                            new MemoryMappedFile(testFolder.getFile("test-random.dat")),
                             LongStorageAdapter.getInstance(),
                             Long::compare)
             ) {
@@ -88,7 +88,7 @@ public class MappedHeapTest {
         try (
                 TestFolder testFolder = new TestFolder("MappedHeapTest", "testRemoveAt");
                 MappedHeap<Long> heap = new MappedHeap<>(
-                        new MemoryMappedFile(testFolder.getFile("test-asc.dat"), 0),
+                        new MemoryMappedFile(testFolder.getFile("test-asc.dat")),
                         LongStorageAdapter.getInstance(),
                         Long::compare)
         ) {
@@ -125,7 +125,7 @@ public class MappedHeapTest {
         try (
                 TestFolder testFolder = new TestFolder("MappedHeapTest", "testRecordRelocatedEvent");
                 MappedHeap<Long> heap = new MappedHeap<>(
-                        new MemoryMappedFile(testFolder.getFile("test-asc.dat"), 0),
+                        new MemoryMappedFile(testFolder.getFile("test-asc.dat")),
                         LongStorageAdapter.getInstance(),
                         Long::compare)
         ) {

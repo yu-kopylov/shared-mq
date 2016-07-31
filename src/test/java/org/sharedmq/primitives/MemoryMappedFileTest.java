@@ -15,8 +15,10 @@ public class MemoryMappedFileTest {
     public void testSmoke() throws IOException {
         try (
                 TestFolder testFolder = new TestFolder("MemoryMappedFileTest", "testSmoke");
-                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"), 4096)
+                MemoryMappedFile mappedFile = new MemoryMappedFile(testFolder.getFile("test.dat"))
         ) {
+            mappedFile.ensureCapacity(4096);
+
             // test int
             mappedFile.putInt(0, 0x12345678);
             mappedFile.putInt(4, -0x12345678);
