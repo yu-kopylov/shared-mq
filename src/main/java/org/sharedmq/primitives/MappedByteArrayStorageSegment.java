@@ -120,6 +120,10 @@ public class MappedByteArrayStorageSegment {
         return new MappedByteArrayStorageSegment(dataFile, segmentNumber, segmentOffset, segmentSize, header);
     }
 
+    public int getSegmentNumber() {
+        return segmentNumber;
+    }
+
     /**
      * Reads the segment header from the memory-mapped file.
      *

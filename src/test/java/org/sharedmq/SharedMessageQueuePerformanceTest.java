@@ -1,10 +1,10 @@
 package org.sharedmq;
 
 import com.google.common.base.Strings;
-import org.sharedmq.test.PerformanceTests;
-import org.sharedmq.test.TestFolder;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.sharedmq.test.PerformanceTests;
+import org.sharedmq.test.TestFolder;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 @Category(PerformanceTests.class)
 public class SharedMessageQueuePerformanceTest {

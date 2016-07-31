@@ -101,6 +101,13 @@ public class MappedByteArrayStorageTest {
             MappedByteArrayStorageKey key5 = storage.add(TestUtils.generateArray(arraySize));
             MappedByteArrayStorageKey key6 = storage.add(TestUtils.generateArray(arraySize));
 
+            assertEquals(0, key1.getSegmentNumber());
+            assertEquals(0, key2.getSegmentNumber());
+            assertEquals(1, key3.getSegmentNumber());
+            assertEquals(1, key4.getSegmentNumber());
+            assertEquals(2, key5.getSegmentNumber());
+            assertEquals(2, key6.getSegmentNumber());
+
             assertEquals(0, key1.getRecordNumber());
             assertEquals(1, key2.getRecordNumber());
             assertEquals(0, key3.getRecordNumber());
@@ -126,10 +133,15 @@ public class MappedByteArrayStorageTest {
             MappedByteArrayStorageKey key4_2 = storage.add(TestUtils.generateArray(arraySize));
             MappedByteArrayStorageKey key5_2 = storage.add(TestUtils.generateArray(arraySize));
 
-            assertEquals(1, key2_2.getRecordNumber());
-            assertEquals(0, key3_2.getRecordNumber());
-            assertEquals(1, key4_2.getRecordNumber());
-            assertEquals(0, key5_2.getRecordNumber());
+            assertEquals(2, key2_2.getSegmentNumber());
+            assertEquals(0, key3_2.getSegmentNumber());
+            assertEquals(1, key4_2.getSegmentNumber());
+            assertEquals(1, key5_2.getSegmentNumber());
+
+            assertEquals(0, key2_2.getRecordNumber());
+            assertEquals(1, key3_2.getRecordNumber());
+            assertEquals(0, key4_2.getRecordNumber());
+            assertEquals(1, key5_2.getRecordNumber());
 
             assertEquals(6, key2_2.getRecordId());
             assertEquals(7, key3_2.getRecordId());

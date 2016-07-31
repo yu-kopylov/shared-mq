@@ -18,10 +18,11 @@ public class MappedByteArrayStorage implements Closeable {
 
     private static final int FileMarker = 0x4D424153;
     private static final int FileMarkerOffset = 0;
-    private static final int SegmentSizeOffset = 4;
-    private static final int SegmentCountOffset = 8;
-    private static final int NextRecordIdOffset = 12;
-    private static final int HeaderSize = 20;
+    private static final int SegmentSizeOffset = FileMarkerOffset + 4;
+    private static final int SegmentCountOffset = SegmentSizeOffset + 4;
+    private static final int NextRecordIdOffset = SegmentCountOffset + 4;
+    private static final int LastUsedSegmentOffset = NextRecordIdOffset + 8;
+    private static final int HeaderSize = LastUsedSegmentOffset + 4;
 
     private final DataFile dataFile;
 
@@ -44,6 +45,8 @@ public class MappedByteArrayStorage implements Closeable {
         dataFile.putInt(FileMarkerOffset, FileMarker);
         dataFile.putInt(SegmentSizeOffset, SegmentSize);
         dataFile.putInt(SegmentCountOffset, 0);
+        dataFile.putInt(LastUsedSegmentOffset, -1);
+        dataFile.putInt(NextRecordIdOffset, 0);
     }
 
     private void checkFileHeader() throws IOException {
@@ -88,6 +91,7 @@ public class MappedByteArrayStorage implements Closeable {
         if (segment == null) {
             segment = createSegment();
         }
+        dataFile.putInt(LastUsedSegmentOffset, segment.getSegmentNumber());
         long recordId = getNextRecordId();
         return segment.addArray(recordId, array);
     }
@@ -122,15 +126,16 @@ public class MappedByteArrayStorage implements Closeable {
 
     private MappedByteArrayStorageSegment findFreeSegment(int arrayLength) throws IOException {
 
-        // This is not a very smart algorithm, and can be improved.
-        // However, it is sufficient for now.
+        int lastUsedSegmentNumber = dataFile.getInt(LastUsedSegmentOffset);
 
         int segmentCount = getSegmentCount();
         for (int i = 0; i < segmentCount; i++) {
+            // Usually, the most empty segment is either the last used segment or the segment next to it.
+            int segmentNumber = (lastUsedSegmentNumber + i) % segmentCount;
             MappedByteArrayStorageSegment segment = MappedByteArrayStorageSegment.read(
                     dataFile,
-                    i,
-                    getSegmentOffset(i),
+                    segmentNumber,
+                    getSegmentOffset(segmentNumber),
                     SegmentSize);
             if (segment.canAllocate(arrayLength)) {
                 return segment;
