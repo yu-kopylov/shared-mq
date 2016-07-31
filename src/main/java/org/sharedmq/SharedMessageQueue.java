@@ -389,9 +389,14 @@ public class SharedMessageQueue implements Closeable {
 
         if (deletedMessagesTotal > 0) {
             long timeSpent = getTime() - start;
-            logger.trace("The cleanupQueue method" +
+            String message = "The cleanupQueue method" +
                     " removed " + deletedMessagesTotal + " messages" +
-                    " within " + timeSpent + "ms.");
+                    " within " + timeSpent + "ms.";
+            if (timeSpent < 1000) {
+                logger.trace(message);
+            } else {
+                logger.debug(message);
+            }
         }
     }
 
