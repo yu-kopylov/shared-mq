@@ -60,7 +60,6 @@ public class MemoryMappedFile implements DataFile {
         return buffer.getLong(offset);
     }
 
-    //todo: test
     @Override
     public void readBytes(int fileOffset, byte[] array, int arrayOffset, int dataLength) {
         buffer.position(fileOffset);

@@ -218,7 +218,6 @@ public class SharedMessageQueueTest {
     public void testDeleteAfterVisibilityTimeout() throws InterruptedException, IOException {
         try (
                 TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testDeleteAfterVisibilityTimeout");
-                //todo: define constants
                 SharedMessageQueue realQueue1 = SharedMessageQueue.createQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L);
                 SharedMessageQueue realQueue2 = SharedMessageQueue.createQueue(testFolder.getRoot(), 5 * 1000L, 60 * 1000L);
                 SharedMessageQueue queue1 = spy(realQueue1);

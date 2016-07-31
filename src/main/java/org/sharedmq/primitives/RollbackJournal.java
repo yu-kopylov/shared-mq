@@ -128,7 +128,6 @@ public class RollbackJournal implements Closeable {
 
         journalSize += dataLength + RecordHeaderSize;
 
-        //todo: use allocation unit
         mappedFile.ensureCapacity(HeaderSize + journalSize);
 
         mappedFile.writeBytes(journalDataOffset, data, 0, dataLength);
