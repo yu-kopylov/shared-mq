@@ -158,15 +158,18 @@ public class MappedArrayList<TRecord> implements Closeable {
 
     private void ensureBufferCapacity(int recordCount) throws IOException {
         long requiredFileSize = getRequiredSize(recordSize, recordCount);
-        if (requiredFileSize > MaxFileSize) {
-            throw new IOException("The MappedByteArrayStorage cannot be bigger than " + MaxFileSize + " bytes.");
-        }
 
         if (requiredFileSize > dataFile.capacity()) {
+
             // division with rounding up
-            int unitsCount = (int) ((requiredFileSize + AllocationUnit - 1) / AllocationUnit);
-            int fileSize = unitsCount * AllocationUnit;
-            dataFile.ensureCapacity(fileSize);
+            long unitsCount = (requiredFileSize + AllocationUnit - 1) / AllocationUnit;
+            long fileSize = unitsCount * AllocationUnit;
+
+            if (fileSize > MaxFileSize) {
+                throw new IOException("The MappedByteArrayStorage cannot be bigger than " + MaxFileSize + " bytes.");
+            }
+
+            dataFile.ensureCapacity((int) fileSize);
         }
     }
 

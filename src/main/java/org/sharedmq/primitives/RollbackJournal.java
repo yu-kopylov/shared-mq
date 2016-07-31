@@ -15,6 +15,7 @@ import java.util.List;
 public class RollbackJournal implements Closeable {
 
     private static final long MaxFileSize = Integer.MAX_VALUE;
+    private static final long AllocationUnit = 64 * 1024;
 
     private static final int FileMarker = 0x52424A4E;
 
@@ -126,15 +127,33 @@ public class RollbackJournal implements Closeable {
         int journalDataOffset = HeaderSize + journalSize;
         int recordHeaderOffset = journalDataOffset + dataLength;
 
-        journalSize += dataLength + RecordHeaderSize;
+        long newJournalSize = (long) journalSize + dataLength + RecordHeaderSize;
 
-        mappedFile.ensureCapacity(HeaderSize + journalSize);
+        ensureCapacity(newJournalSize);
 
         mappedFile.writeBytes(journalDataOffset, data, 0, dataLength);
         mappedFile.putInt(recordHeaderOffset, fileId);
         mappedFile.putInt(recordHeaderOffset + 4, dataOffset);
         mappedFile.putInt(recordHeaderOffset + 8, dataLength);
-        mappedFile.putInt(JournalSizeOffset, journalSize);
+        mappedFile.putInt(JournalSizeOffset, (int) newJournalSize);
+    }
+
+    private void ensureCapacity(long journalSize) throws IOException {
+
+        long requiredCapacity = HeaderSize + journalSize;
+
+        if (mappedFile.capacity() < requiredCapacity) {
+
+            // division with rounding up
+            long unitsCount = (requiredCapacity + AllocationUnit - 1) / AllocationUnit;
+            long newCapacity = (int) (unitsCount * AllocationUnit);
+
+            if (newCapacity > MaxFileSize) {
+                throw new IOException("The RollbackJournal cannot be bigger than " + MaxFileSize + " bytes.");
+            }
+
+            mappedFile.ensureCapacity((int) newCapacity);
+        }
     }
 
     @Override
