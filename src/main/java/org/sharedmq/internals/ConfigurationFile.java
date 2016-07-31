@@ -18,8 +18,11 @@ import java.nio.channels.FileChannel;
 public class ConfigurationFile implements Closeable {
 
     private static final int FileMarker = 0x4D514346;
+    private static final int FormatVersion = 1;
+
     private static final int FileMarkerOffset = 0;
-    private static final int LockOffsetOffset = FileMarkerOffset + 4;
+    private static final int FormatVersionOffset = FileMarkerOffset + 4;
+    private static final int LockOffsetOffset = FormatVersionOffset + 4;
     private static final int VisibilityTimeoutOffset = LockOffsetOffset + MappedByteBufferLock.LockSize;
     private static final int RetentionPeriodOffset = VisibilityTimeoutOffset + 8;
     private static final int NextMessageIdOffset = RetentionPeriodOffset + 8;
@@ -76,6 +79,7 @@ public class ConfigurationFile implements Closeable {
 
             try (MappedByteBufferLock lock = configurationFile.acquireLock()) {
                 buffer.putInt(FileMarkerOffset, FileMarker);
+                buffer.putInt(FormatVersionOffset, FormatVersion);
                 buffer.putLong(VisibilityTimeoutOffset, configuration.getVisibilityTimeout());
                 buffer.putLong(RetentionPeriodOffset, configuration.getRetentionPeriod());
                 buffer.putLong(NextMessageIdOffset, 0);
@@ -123,7 +127,8 @@ public class ConfigurationFile implements Closeable {
                 randomAccessFile = new RandomAccessFile(file, "rw");
             }
             if (!checkMarker(randomAccessFile)) {
-                throw new IOException("The file '" + file.getAbsolutePath() + "' is not a configuration file.");
+                throw new IOException("The file '" + file.getAbsolutePath() + "'" +
+                        " is not a configuration file or has different format version.");
             }
 
             fileChannel = randomAccessFile.getChannel();
@@ -174,6 +179,7 @@ public class ConfigurationFile implements Closeable {
         }
         randomAccessFile.seek(FileMarkerOffset);
         int fileMarker = randomAccessFile.readInt();
-        return fileMarker == FileMarker;
+        int formatVersion = randomAccessFile.readInt();
+        return fileMarker == FileMarker && formatVersion == FormatVersion;
     }
 }
