@@ -518,7 +518,7 @@ public class SharedMessageQueueTest {
     public void testMessageIdGeneration() throws InterruptedException, IOException {
         try (
                 TestFolder testFolder = new TestFolder("SharedMessageQueueTest", "testMessageIdGeneration");
-                SharedMessageQueue queue = SharedMessageQueue.createQueue(testFolder.getRoot(), 5000, 60 * 1000)
+                SharedMessageQueue queue = SharedMessageQueue.createQueue(testFolder.getRoot(), VisibilityTimeout, RetentionPeriod)
         ) {
             // we use some delay between messages to guarantee exact message order
             queue.push(0, "Test Message 1");
@@ -527,10 +527,9 @@ public class SharedMessageQueueTest {
             Thread.sleep(2);
             queue.push(0, "Test Message 3");
 
-            //todo: define constants
-            SharedQueueMessage message1 = (SharedQueueMessage) queue.pull(5000);
-            SharedQueueMessage message2 = (SharedQueueMessage) queue.pull(5000);
-            SharedQueueMessage message3 = (SharedQueueMessage) queue.pull(5000);
+            SharedQueueMessage message1 = (SharedQueueMessage) queue.pull(ShortPullTimeout);
+            SharedQueueMessage message2 = (SharedQueueMessage) queue.pull(ShortPullTimeout);
+            SharedQueueMessage message3 = (SharedQueueMessage) queue.pull(ShortPullTimeout);
 
             assertEquals("Test Message 1", message1.asString());
             assertEquals("Test Message 2", message2.asString());
@@ -557,9 +556,9 @@ public class SharedMessageQueueTest {
             Thread.sleep(2);
             queue.push(0, "Test Message 6");
 
-            SharedQueueMessage message4 = (SharedQueueMessage) queue.pull(5000);
-            SharedQueueMessage message5 = (SharedQueueMessage) queue.pull(5000);
-            SharedQueueMessage message6 = (SharedQueueMessage) queue.pull(5000);
+            SharedQueueMessage message4 = (SharedQueueMessage) queue.pull(ShortPullTimeout);
+            SharedQueueMessage message5 = (SharedQueueMessage) queue.pull(ShortPullTimeout);
+            SharedQueueMessage message6 = (SharedQueueMessage) queue.pull(ShortPullTimeout);
 
             assertEquals("Test Message 4", message4.asString());
             assertEquals("Test Message 5", message5.asString());

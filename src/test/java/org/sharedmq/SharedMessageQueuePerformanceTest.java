@@ -25,7 +25,6 @@ public class SharedMessageQueuePerformanceTest {
 
     @Test
     public void testPushPullDelete() throws IOException, InterruptedException {
-        //todo: shorten folder name
         try (TestFolder testFolder = new TestFolder("SharedMessageQueuePerformanceTest", "testPushPullDelete")) {
             testPushPullDelete(testFolder.getRoot(), 1, 5000000, 32);
         }
