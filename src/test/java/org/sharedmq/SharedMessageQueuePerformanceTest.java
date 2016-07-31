@@ -1,5 +1,6 @@
 package org.sharedmq;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -12,10 +13,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.sharedmq.test.TestUtils.printResult;
 
 @Category(PerformanceTests.class)
 public class SharedMessageQueuePerformanceTest {
@@ -80,7 +83,7 @@ public class SharedMessageQueuePerformanceTest {
             int messageSize
     ) throws IOException, InterruptedException {
 
-        System.out.println("testPushPullDelete started" +
+        System.out.println("\ntestPushPullDelete started" +
                 " (" + threadCount + " threads" +
                 ", " + messagesPerThread + " messages per thread" +
                 ", " + messageSize + " bytes per message)");
@@ -115,12 +118,12 @@ public class SharedMessageQueuePerformanceTest {
                 }));
             }
 
-            long started = System.currentTimeMillis();
+            Stopwatch sw = Stopwatch.createStarted();
             startThreads(threads);
             joinThreads(threads);
-            long ended = System.currentTimeMillis();
+            sw.stop();
 
-            printResult("testPushPullDelete: ", ended - started, totalMessageCount);
+            printResult("testPushPullDelete: ", sw, totalMessageCount);
 
             // Sanity check. No messages should remain in the queue.
             assertEquals(0, queue.size());
@@ -135,7 +138,7 @@ public class SharedMessageQueuePerformanceTest {
             int messageSize
     ) throws IOException, InterruptedException {
 
-        System.out.println("testPushAllPullAllDeleteAll started" +
+        System.out.println("\ntestPushAllPullAllDeleteAll started" +
                 " (" + threadCount + " threads" +
                 ", " + messagesPerThread + " messages per thread" +
                 ", " + messageSize + " bytes per message)");
@@ -171,13 +174,12 @@ public class SharedMessageQueuePerformanceTest {
                 }));
             }
 
-            long pushStarted = System.currentTimeMillis();
+            Stopwatch pushTimer = Stopwatch.createStarted();
             startThreads(pushThreads);
             joinThreads(pushThreads);
-            long pushEnded = System.currentTimeMillis();
+            pushTimer.stop();
 
-            long pushTime = pushEnded - pushStarted;
-            printResult("testPushAllPullAllDeleteAll: push", pushTime, totalMessageCount);
+            printResult("testPushAllPullAllDeleteAll (push)", pushTimer, totalMessageCount);
 
             // Waiting for all messages to become visible.
             // Performance tests usually take a long time, so thread sleeping is ok here.
@@ -210,14 +212,12 @@ public class SharedMessageQueuePerformanceTest {
                 }));
             }
 
-
-            long pullStarted = System.currentTimeMillis();
+            Stopwatch pullTimer = Stopwatch.createStarted();
             startThreads(pullThreads);
             joinThreads(pullThreads);
-            long pullEnded = System.currentTimeMillis();
+            pullTimer.stop();
 
-            long pullTime = pullEnded - pullStarted;
-            printResult("testPushAllPullAllDeleteAll: pull", pullTime, totalMessageCount);
+            printResult("testPushAllPullAllDeleteAll (pull)", pullTimer, totalMessageCount);
 
             List<Thread> deleteThreads = new ArrayList<>();
             final CountDownLatch deleteStartLatch = new CountDownLatch(threadCount);
@@ -242,20 +242,22 @@ public class SharedMessageQueuePerformanceTest {
                 }));
             }
 
-            long deleteStarted = System.currentTimeMillis();
+            Stopwatch deleteTimer = Stopwatch.createStarted();
             startThreads(deleteThreads);
             joinThreads(deleteThreads);
-            long deleteEnded = System.currentTimeMillis();
+            deleteTimer.stop();
 
             // Sanity check. No messages should remain in the queue.
             assertEquals(0, queue.size());
             assertEquals(0, errorCount.get());
 
-            long deleteTime = deleteEnded - deleteStarted;
-            printResult("testPushAllPullAllDeleteAll: delete", deleteTime, totalMessageCount);
+            printResult("testPushAllPullAllDeleteAll (delete)", deleteTimer, totalMessageCount);
 
-            long totalTime = pushTime + pullTime + deleteTime;
-            printResult("testPushAllPullAllDeleteAll: push+pull+delete", totalTime, totalMessageCount);
+            long totalTime =
+                    pushTimer.elapsed(TimeUnit.MILLISECONDS) +
+                            pullTimer.elapsed(TimeUnit.MILLISECONDS) +
+                            deleteTimer.elapsed(TimeUnit.MILLISECONDS);
+            printResult("testPushAllPullAllDeleteAll (total)", totalTime, totalMessageCount);
         }
     }
 
@@ -269,14 +271,5 @@ public class SharedMessageQueuePerformanceTest {
         for (Thread thread : threads) {
             thread.join();
         }
-    }
-
-    //todo: merge with printResult in IOPerformanceTest
-    private static void printResult(String prefix, long timeSpent, int messageCount) {
-        String messagesPerSecond = timeSpent == 0 ? "unknown" : String.valueOf(messageCount * 1000L / timeSpent);
-        System.out.println(prefix +
-                " completed in " + timeSpent + "ms" +
-                " (" + messagesPerSecond + " messages per second).");
-
     }
 }

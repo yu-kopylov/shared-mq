@@ -1,21 +1,21 @@
 package org.sharedmq;
 
-import org.sharedmq.test.PerformanceTests;
-import org.sharedmq.test.TestFolder;
-import org.sharedmq.util.IOUtils;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Strings;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.sharedmq.test.PerformanceTests;
+import org.sharedmq.test.TestFolder;
+import org.sharedmq.util.IOUtils;
 
 import java.io.*;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
+import static org.sharedmq.test.TestUtils.printResult;
 
 /**
  * Tests performance of basic I/O operations.
@@ -396,7 +396,7 @@ public class IOPerformanceTest {
 
         sw = Stopwatch.createStarted();
         for (int i = 0; i < operationCount; i++) {
-            synchronized (monitor){
+            synchronized (monitor) {
                 monitor.wait(1);
             }
         }
@@ -404,7 +404,7 @@ public class IOPerformanceTest {
 
         sw = Stopwatch.createStarted();
         for (int i = 0; i < operationCount; i++) {
-            synchronized (monitor){
+            synchronized (monitor) {
                 monitor.wait(5);
             }
         }
@@ -433,18 +433,5 @@ public class IOPerformanceTest {
 
     private String formatSize(int size) {
         return Strings.padStart(size + "B", 6, ' ');
-    }
-
-    private static void printResult(String prefix, Stopwatch timer, int operationCount) {
-        long timeSpent = timer.elapsed(TimeUnit.MILLISECONDS);
-        String messagesPerSecond = timeSpent == 0 ? "unknown" : String.valueOf(operationCount * 1000L / timeSpent);
-
-        long operationTime = timeSpent * 1000L / operationCount;
-
-        System.out.println(Strings.padEnd(prefix, 39, ' ') +
-                ": " + operationCount + " operations" +
-                ", " + Strings.padStart(String.valueOf(timeSpent), 5, ' ') + "ms" +
-                " (" + Strings.padStart(String.valueOf(operationTime), 5, ' ') + "\u00B5s per op." +
-                ", " + Strings.padStart(messagesPerSecond, 4, ' ') + " op/second).");
     }
 }
