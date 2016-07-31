@@ -87,7 +87,6 @@ public class QueueTester {
                 Thread.sleep(5000);
             }
 
-            //todo: check how delay affects performance
             queue.push(random.nextInt(MaxDelay + 1), generateMessage());
             sentMessages++;
             if (sentMessages % BatchSize == 0) {

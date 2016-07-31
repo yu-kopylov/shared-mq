@@ -94,7 +94,6 @@ public class SharedMessageQueuePerformanceTest {
         final List<Thread> threads = new ArrayList<>();
         final CountDownLatch startLatch = new CountDownLatch(threadCount);
 
-        //todo: check size of Hours12 (sec vs ms)
         try (SharedMessageQueue queue = SharedMessageQueue.createQueue(queueFolder, Hours12, Hours12)) {
             for (int threadNum = 0; threadNum < threadCount; threadNum++) {
                 threads.add(new Thread(() -> {
