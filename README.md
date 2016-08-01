@@ -28,6 +28,8 @@ Changes are not forced to the disk at the end of operation, so queue can become 
 
 The size of the queue is limited to 2GB.
 
+The message size is limited by 256KB.
+
 ## Memory Usage
 
 The queue itself does not consume much memory, since all structures are maintained within memory-mapped files.
